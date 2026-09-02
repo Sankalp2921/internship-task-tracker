@@ -1,13 +1,44 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import TaskCard from "../components/TaskCard";
 import { useTasks } from "../context/TaskContext";
 
-function Tasks() {
+function Tasks({ completedOnly = false }) {
 
   const { tasks } = useTasks();
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("All");
+
+  const [searchParams] = useSearchParams();
+
+
+  // ==========================================
+  // GET STATUS FROM URL
+  // ==========================================
+
+  const urlStatus = searchParams.get("status");
+
+
+  // ==========================================
+  // INITIAL STATUS
+  // ==========================================
+
+  const [status, setStatus] = useState(
+    urlStatus || "All"
+  );
+
+
+  // ==========================================
+  // GET SORT PREFERENCE
+  // ==========================================
+
+  const sortBy =
+    localStorage.getItem("sortBy") || "recent";
+
+
+  // ==========================================
+  // FILTER TASKS
+  // ==========================================
 
   const filteredTasks = tasks.filter((task) => {
 
@@ -15,70 +46,191 @@ function Tasks() {
       .toLowerCase()
       .includes(search.toLowerCase());
 
+
     const matchesStatus =
-      status === "All" ||
-      task.status === status;
+      completedOnly
+        ? task.status === "completed"
+        : status === "All" ||
+          task.status === status;
+
 
     return matchesSearch && matchesStatus;
+
   });
+
+
+  // ==========================================
+  // SORT TASKS
+  // ==========================================
+
+  const sortedTasks = [...filteredTasks].sort(
+    (a, b) => {
+
+      // -------------------------------
+      // RECENTLY ADDED
+      // -------------------------------
+
+      if (sortBy === "recent") {
+
+        return (
+          new Date(b.createdAt || 0) -
+          new Date(a.createdAt || 0)
+        );
+
+      }
+
+
+      // -------------------------------
+      // DEADLINE
+      // -------------------------------
+
+      if (sortBy === "deadline") {
+
+        return (
+          new Date(
+            a.deadline || "9999-12-31"
+          ) -
+          new Date(
+            b.deadline || "9999-12-31"
+          )
+        );
+
+      }
+
+
+      // -------------------------------
+      // PRIORITY
+      // -------------------------------
+
+      if (sortBy === "priority") {
+
+        const priorityOrder = {
+          high: 1,
+          High: 1,
+
+          medium: 2,
+          Medium: 2,
+
+          low: 3,
+          Low: 3,
+        };
+
+        return (
+          (priorityOrder[a.priority] || 99) -
+          (priorityOrder[b.priority] || 99)
+        );
+
+      }
+
+
+      // -------------------------------
+      // STATUS
+      // -------------------------------
+
+      if (sortBy === "status") {
+
+        const statusOrder = {
+          pending: 1,
+          "in-progress": 2,
+          completed: 3,
+        };
+
+        return (
+          (statusOrder[a.status] || 99) -
+          (statusOrder[b.status] || 99)
+        );
+
+      }
+
+
+      return 0;
+
+    }
+  );
+
 
   return (
     <main className="page">
 
-      {/* Page Heading */}
+
+      {/* =========================
+          PAGE HEADING
+      ========================= */}
+
       <div className="page-heading">
 
-        <h1>My Tasks</h1>
+        <h1>
+          {completedOnly
+            ? "Completed Tasks"
+            : "My Tasks"}
+        </h1>
 
         <p>
-          Search and manage your assigned internship tasks.
+          {completedOnly
+            ? "View your completed internship tasks."
+            : "Search and manage your assigned internship tasks."}
         </p>
 
       </div>
 
 
-      {/* Search and Filter */}
+      {/* =========================
+          SEARCH AND FILTER
+      ========================= */}
+
       <div className="filters">
 
         <input
           type="text"
           placeholder="🔍 Search tasks..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
         />
 
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
 
-          <option value="All">
-            All
-          </option>
+        {!completedOnly && (
 
-          <option value="Pending">
-            Pending
-          </option>
+          <select
+            value={status}
+            onChange={(e) =>
+              setStatus(e.target.value)
+            }
+          >
 
-          <option value="In Progress">
-            In Progress
-          </option>
+            <option value="All">
+              All
+            </option>
 
-          <option value="Completed">
-            Completed
-          </option>
+            <option value="pending">
+              Pending
+            </option>
 
-        </select>
+            <option value="in-progress">
+              In Progress
+            </option>
+
+            <option value="completed">
+              Completed
+            </option>
+
+          </select>
+
+        )}
 
       </div>
 
 
-      {/* Task Cards */}
+      {/* =========================
+          TASK CARDS
+      ========================= */}
+
       <div className="task-grid">
 
-        {filteredTasks.length > 0 ? (
+        {sortedTasks.length > 0 ? (
 
-          filteredTasks.map((task) => (
+          sortedTasks.map((task) => (
 
             <TaskCard
               key={task.id}
@@ -100,5 +252,6 @@ function Tasks() {
     </main>
   );
 }
+
 
 export default Tasks;

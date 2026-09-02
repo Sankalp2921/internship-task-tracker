@@ -3,34 +3,40 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function Settings() {
-
   const navigate = useNavigate();
 
   const {
     user,
     updateUser,
-    logout
+    logout,
   } = useAuth();
-
 
   /* =========================
      PROFILE
   ========================= */
 
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
+  const [name, setName] = useState(
+    user?.name || ""
+  );
+
+  const [email, setEmail] = useState(
+    user?.email || ""
+  );
+
   const [profilePhoto, setProfilePhoto] = useState(
     user?.profilePhoto || ""
   );
 
+  const [profileLoading, setProfileLoading] =
+    useState(false);
 
   /* =========================
      NOTIFICATIONS
   ========================= */
 
   const [notifications, setNotifications] = useState(() => {
-
-    const saved = localStorage.getItem("notifications");
+    const saved =
+      localStorage.getItem("notifications");
 
     return saved
       ? JSON.parse(saved)
@@ -38,97 +44,206 @@ function Settings() {
           taskAssigned: true,
           deadlineReminder: true,
           taskCompleted: true,
-          emailNotifications: false
+          emailNotifications: false,
         };
   });
-
 
   /* =========================
      APPEARANCE
   ========================= */
 
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("theme") || "system";
+    return (
+      localStorage.getItem("theme") ||
+      "system"
+    );
   });
-
 
   /* =========================
      TASK PREFERENCES
   ========================= */
 
   const [sortBy, setSortBy] = useState(() => {
-    return localStorage.getItem("sortBy") || "recent";
+    return (
+      localStorage.getItem("sortBy") ||
+      "recent"
+    );
   });
 
-  const [defaultPriority, setDefaultPriority] = useState(() => {
-    return localStorage.getItem("defaultPriority") || "Medium";
-  });
-
+  const [defaultPriority, setDefaultPriority] =
+    useState(() => {
+      return (
+        localStorage.getItem(
+          "defaultPriority"
+        ) || "Medium"
+      );
+    });
 
   /* =========================
      PASSWORD
+     ADMIN ONLY
   ========================= */
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] =
+    useState("");
 
-  const [message, setMessage] = useState("");
+  const [newPassword, setNewPassword] =
+    useState("");
 
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
+
+  const [passwordLoading, setPasswordLoading] =
+    useState(false);
+
+  /* =========================
+     KEEP PROFILE IN SYNC
+  ========================= */
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    setName(user.name || "");
+    setEmail(user.email || "");
+    setProfilePhoto(user.profilePhoto || "");
+  }, [user]);
 
   /* =========================
      PROFILE PHOTO
   ========================= */
 
   const handlePhotoChange = (e) => {
-
     const file = e.target.files[0];
 
     if (!file) {
       return;
     }
 
+    // Maximum 2 MB
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage(
+        "Profile photo must be smaller than 2 MB."
+      );
+
+      return;
+    }
+
     const reader = new FileReader();
 
     reader.onloadend = () => {
-      setProfilePhoto(reader.result);
+      setProfilePhoto(
+        reader.result
+      );
     };
 
     reader.readAsDataURL(file);
   };
 
-
   /* =========================
      SAVE PROFILE
   ========================= */
 
-  const handleProfileSave = (e) => {
-
+  const handleProfileSave = async (e) => {
     e.preventDefault();
 
-    updateUser({
-      name,
-      email,
-      profilePhoto
-    });
+    setMessage("");
 
-    setMessage("Profile updated successfully.");
+    // Check login
+    if (!user || !user.token) {
+      setMessage(
+        "You are not logged in."
+      );
 
-    setTimeout(() => {
-      setMessage("");
-    }, 3000);
+      return;
+    }
+
+    // Validate name
+    if (!name.trim()) {
+      setMessage(
+        "Name cannot be empty."
+      );
+
+      return;
+    }
+
+    // Validate email
+    if (!email.trim()) {
+      setMessage(
+        "Email cannot be empty."
+      );
+
+      return;
+    }
+
+    try {
+      setProfileLoading(true);
+
+      const result = await updateUser({
+        name: name.trim(),
+        email: email.trim(),
+        profilePhoto,
+      });
+
+      // Backend returned error
+      if (!result.success) {
+        setMessage(
+          result.message ||
+          "Unable to update profile."
+        );
+
+        return;
+      }
+
+      // Update form with backend response
+      setName(
+        result.user.name
+      );
+
+      setEmail(
+        result.user.email
+      );
+
+      setProfilePhoto(
+        result.user.profilePhoto || ""
+      );
+
+      setMessage(
+        "Profile updated successfully."
+      );
+
+      setTimeout(() => {
+        setMessage("");
+      }, 3000);
+
+    } catch (error) {
+      console.error(
+        "Profile save error:",
+        error
+      );
+
+      setMessage(
+        "Unable to update profile."
+      );
+
+    } finally {
+      setProfileLoading(false);
+    }
   };
-
 
   /* =========================
      NOTIFICATION CHANGE
   ========================= */
 
   const handleNotificationChange = (key) => {
-
     const updated = {
       ...notifications,
-      [key]: !notifications[key]
+      [key]:
+        !notifications[key],
     };
 
     setNotifications(updated);
@@ -139,45 +254,54 @@ function Settings() {
     );
   };
 
-
   /* =========================
      THEME
   ========================= */
 
   useEffect(() => {
-
     localStorage.setItem(
       "theme",
       theme
     );
 
     if (theme === "dark") {
-      document.body.classList.add("dark-mode");
-    } else if (theme === "light") {
-      document.body.classList.remove("dark-mode");
-    } else {
+      document.body.classList.add(
+        "dark-mode"
+      );
+    }
 
+    else if (theme === "light") {
+      document.body.classList.remove(
+        "dark-mode"
+      );
+    }
+
+    else {
       const prefersDark =
         window.matchMedia(
           "(prefers-color-scheme: dark)"
         ).matches;
 
       if (prefersDark) {
-        document.body.classList.add("dark-mode");
-      } else {
-        document.body.classList.remove("dark-mode");
+        document.body.classList.add(
+          "dark-mode"
+        );
+      }
+
+      else {
+        document.body.classList.remove(
+          "dark-mode"
+        );
       }
     }
 
   }, [theme]);
-
 
   /* =========================
      TASK PREFERENCES
   ========================= */
 
   const handleSortChange = (value) => {
-
     setSortBy(value);
 
     localStorage.setItem(
@@ -186,9 +310,7 @@ function Settings() {
     );
   };
 
-
   const handlePriorityChange = (value) => {
-
     setDefaultPriority(value);
 
     localStorage.setItem(
@@ -197,17 +319,37 @@ function Settings() {
     );
   };
 
-
   /* =========================
      CHANGE PASSWORD
+     ADMIN ONLY
   ========================= */
 
-  const handlePasswordChange = (e) => {
-
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    setMessage("");
 
+    /* -------------------------
+       ADMIN CHECK
+    ------------------------- */
+
+    if (!user || user.role !== "admin") {
+      setMessage(
+        "Only admin can change the password."
+      );
+
+      return;
+    }
+
+    /* -------------------------
+       VALIDATE FIELDS
+    ------------------------- */
+
+    if (
+      !currentPassword ||
+      !newPassword ||
+      !confirmPassword
+    ) {
       setMessage(
         "Please fill all password fields."
       );
@@ -215,17 +357,14 @@ function Settings() {
       return;
     }
 
-    if (currentPassword !== user?.password) {
+    /* -------------------------
+       CHECK NEW PASSWORD
+    ------------------------- */
 
-      setMessage(
-        "Current password is incorrect."
-      );
-
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
       setMessage(
         "New passwords do not match."
       );
@@ -233,39 +372,131 @@ function Settings() {
       return;
     }
 
-    updateUser({
-      password: newPassword
-    });
+    /* -------------------------
+       PASSWORD LENGTH
+    ------------------------- */
 
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    if (
+      newPassword.length < 6
+    ) {
+      setMessage(
+        "New password must be at least 6 characters."
+      );
 
-    setMessage(
-      "Password changed successfully."
-    );
+      return;
+    }
 
+    /* -------------------------
+       CHECK LOGIN
+    ------------------------- */
+
+    if (!user.token) {
+      setMessage(
+        "You are not logged in."
+      );
+
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+
+      /* -------------------------
+         API REQUEST
+      ------------------------- */
+
+      const response = await fetch(
+        "http://localhost:5001/api/auth/change-password",
+        {
+          method: "PATCH",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              `Bearer ${user.token}`,
+          },
+
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      /* -------------------------
+         API ERROR
+      ------------------------- */
+
+      if (!response.ok) {
+        setMessage(
+          data.message ||
+          "Unable to change password."
+        );
+
+        return;
+      }
+
+      /* -------------------------
+         SUCCESS
+      ------------------------- */
+
+      setCurrentPassword("");
+
+      setNewPassword("");
+
+      setConfirmPassword("");
+
+      setMessage(
+        "Password changed successfully."
+      );
+
+      setTimeout(() => {
+        setMessage("");
+      }, 3000);
+
+    } catch (error) {
+      console.error(
+        "Change password error:",
+        error
+      );
+
+      setMessage(
+        "Unable to connect to the server."
+      );
+
+    } finally {
+      setPasswordLoading(false);
+    }
   };
-
 
   /* =========================
      LOGOUT
+     AVAILABLE FOR BOTH
   ========================= */
 
   const handleLogout = () => {
-
     logout();
 
     navigate("/");
   };
 
-
   return (
     <main className="page settings-page">
 
+      {/* =========================
+          PAGE HEADING
+      ========================= */}
+
       <div className="page-heading">
 
-        <h1>⚙️ Settings</h1>
+        <h1>
+          ⚙️ Settings
+        </h1>
 
         <p>
           Manage your profile, preferences and account.
@@ -273,13 +504,15 @@ function Settings() {
 
       </div>
 
+      {/* =========================
+          MESSAGE
+      ========================= */}
 
       {message && (
         <div className="settings-message">
           {message}
         </div>
       )}
-
 
       {/* =========================
           PROFILE
@@ -290,20 +523,25 @@ function Settings() {
         <div className="settings-card-header">
 
           <div>
-            <h2>👤 Profile</h2>
+
+            <h2>
+              👤 Profile
+            </h2>
 
             <p>
               Manage your personal information.
             </p>
+
           </div>
 
         </div>
-
 
         <form
           className="settings-form"
           onSubmit={handleProfileSave}
         >
+
+          {/* PROFILE PHOTO */}
 
           <div className="settings-profile">
 
@@ -337,48 +575,63 @@ function Settings() {
 
           </div>
 
+          {/* NAME */}
 
           <div className="form-group">
 
-            <label>Name</label>
+            <label>
+              Name
+            </label>
 
             <input
               type="text"
               value={name}
               onChange={(e) =>
-                setName(e.target.value)
+                setName(
+                  e.target.value
+                )
               }
             />
 
           </div>
 
+          {/* EMAIL */}
 
           <div className="form-group">
 
-            <label>Email</label>
+            <label>
+              Email
+            </label>
 
             <input
               type="email"
               value={email}
               onChange={(e) =>
-                setEmail(e.target.value)
+                setEmail(
+                  e.target.value
+                )
               }
             />
 
           </div>
 
+          {/* SAVE PROFILE */}
 
           <button
             type="submit"
             className="primary-button"
+            disabled={profileLoading}
           >
-            Save Profile
+
+            {profileLoading
+              ? "Saving Profile..."
+              : "Save Profile"}
+
           </button>
 
         </form>
 
       </section>
-
 
       {/* =========================
           NOTIFICATIONS
@@ -390,7 +643,9 @@ function Settings() {
 
           <div>
 
-            <h2>🔔 Notifications</h2>
+            <h2>
+              🔔 Notifications
+            </h2>
 
             <p>
               Choose which notifications you want.
@@ -400,22 +655,29 @@ function Settings() {
 
         </div>
 
-
         <div className="settings-options">
+
+          {/* TASK ASSIGNED */}
 
           <label className="setting-option">
 
             <div>
-              <strong>Task Assigned</strong>
+
+              <strong>
+                Task Assigned
+              </strong>
 
               <span>
                 Notify when a new task is assigned.
               </span>
+
             </div>
 
             <input
               type="checkbox"
-              checked={notifications.taskAssigned}
+              checked={
+                notifications.taskAssigned
+              }
               onChange={() =>
                 handleNotificationChange(
                   "taskAssigned"
@@ -425,20 +687,27 @@ function Settings() {
 
           </label>
 
+          {/* DEADLINE REMINDER */}
 
           <label className="setting-option">
 
             <div>
-              <strong>Deadline Reminder</strong>
+
+              <strong>
+                Deadline Reminder
+              </strong>
 
               <span>
                 Remind me about upcoming deadlines.
               </span>
+
             </div>
 
             <input
               type="checkbox"
-              checked={notifications.deadlineReminder}
+              checked={
+                notifications.deadlineReminder
+              }
               onChange={() =>
                 handleNotificationChange(
                   "deadlineReminder"
@@ -448,20 +717,27 @@ function Settings() {
 
           </label>
 
+          {/* TASK COMPLETED */}
 
           <label className="setting-option">
 
             <div>
-              <strong>Task Completed</strong>
+
+              <strong>
+                Task Completed
+              </strong>
 
               <span>
                 Notify when a task is completed.
               </span>
+
             </div>
 
             <input
               type="checkbox"
-              checked={notifications.taskCompleted}
+              checked={
+                notifications.taskCompleted
+              }
               onChange={() =>
                 handleNotificationChange(
                   "taskCompleted"
@@ -471,20 +747,27 @@ function Settings() {
 
           </label>
 
+          {/* EMAIL NOTIFICATIONS */}
 
           <label className="setting-option">
 
             <div>
-              <strong>Email Notifications</strong>
+
+              <strong>
+                Email Notifications
+              </strong>
 
               <span>
                 Receive notifications through email.
               </span>
+
             </div>
 
             <input
               type="checkbox"
-              checked={notifications.emailNotifications}
+              checked={
+                notifications.emailNotifications
+              }
               onChange={() =>
                 handleNotificationChange(
                   "emailNotifications"
@@ -498,7 +781,6 @@ function Settings() {
 
       </section>
 
-
       {/* =========================
           APPEARANCE
       ========================= */}
@@ -509,7 +791,9 @@ function Settings() {
 
           <div>
 
-            <h2>🎨 Appearance</h2>
+            <h2>
+              🎨 Appearance
+            </h2>
 
             <p>
               Customize the look of your dashboard.
@@ -519,40 +803,52 @@ function Settings() {
 
         </div>
 
-
         <div className="theme-options">
 
+          {/* LIGHT */}
+
           <button
+            type="button"
             className={
               theme === "light"
                 ? "theme-button active"
                 : "theme-button"
             }
-            onClick={() => setTheme("light")}
+            onClick={() =>
+              setTheme("light")
+            }
           >
             ☀️ Light
           </button>
 
+          {/* DARK */}
 
           <button
+            type="button"
             className={
               theme === "dark"
                 ? "theme-button active"
                 : "theme-button"
             }
-            onClick={() => setTheme("dark")}
+            onClick={() =>
+              setTheme("dark")
+            }
           >
             🌙 Dark
           </button>
 
+          {/* SYSTEM */}
 
           <button
+            type="button"
             className={
               theme === "system"
                 ? "theme-button active"
                 : "theme-button"
             }
-            onClick={() => setTheme("system")}
+            onClick={() =>
+              setTheme("system")
+            }
           >
             💻 System
           </button>
@@ -561,9 +857,122 @@ function Settings() {
 
       </section>
 
-
       {/* =========================
           SECURITY
+          ADMIN ONLY
+      ========================= */}
+
+      {user?.role === "admin" && (
+
+        <section className="settings-card">
+
+          <div className="settings-card-header">
+
+            <div>
+
+              <h2>
+                🔐 Security
+              </h2>
+
+              <p>
+                Manage your account security.
+              </p>
+
+            </div>
+
+          </div>
+
+          <form
+            className="settings-form"
+            onSubmit={handlePasswordChange}
+          >
+
+            {/* CURRENT PASSWORD */}
+
+            <div className="form-group">
+
+              <label>
+                Current Password
+              </label>
+
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) =>
+                  setCurrentPassword(
+                    e.target.value
+                  )
+                }
+                placeholder="Enter current password"
+              />
+
+            </div>
+
+            {/* NEW PASSWORD */}
+
+            <div className="form-group">
+
+              <label>
+                New Password
+              </label>
+
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) =>
+                  setNewPassword(
+                    e.target.value
+                  )
+                }
+                placeholder="Enter new password"
+              />
+
+            </div>
+
+            {/* CONFIRM PASSWORD */}
+
+            <div className="form-group">
+
+              <label>
+                Confirm New Password
+              </label>
+
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) =>
+                  setConfirmPassword(
+                    e.target.value
+                  )
+                }
+                placeholder="Confirm new password"
+              />
+
+            </div>
+
+            {/* CHANGE PASSWORD */}
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={passwordLoading}
+            >
+
+              {passwordLoading
+                ? "Changing Password..."
+                : "Change Password"}
+
+            </button>
+
+          </form>
+
+        </section>
+
+      )}
+
+      {/* =========================
+          LOGOUT
+          BOTH ADMIN & EMPLOYEE
       ========================= */}
 
       <section className="settings-card">
@@ -572,87 +981,20 @@ function Settings() {
 
           <div>
 
-            <h2>🔐 Security</h2>
+            <h2>
+              🚪 Account
+            </h2>
 
             <p>
-              Manage your account security.
+              Manage your current session.
             </p>
 
           </div>
 
         </div>
 
-
-        <form
-          className="settings-form"
-          onSubmit={handlePasswordChange}
-        >
-
-          <div className="form-group">
-
-            <label>
-              Current Password
-            </label>
-
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) =>
-                setCurrentPassword(e.target.value)
-              }
-              placeholder="Enter current password"
-            />
-
-          </div>
-
-
-          <div className="form-group">
-
-            <label>
-              New Password
-            </label>
-
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) =>
-                setNewPassword(e.target.value)
-              }
-              placeholder="Enter new password"
-            />
-
-          </div>
-
-
-          <div className="form-group">
-
-            <label>
-              Confirm New Password
-            </label>
-
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(e.target.value)
-              }
-              placeholder="Confirm new password"
-            />
-
-          </div>
-
-
-          <button
-            type="submit"
-            className="primary-button"
-          >
-            Change Password
-          </button>
-
-        </form>
-
-
         <button
+          type="button"
           className="danger-button"
           onClick={handleLogout}
         >
@@ -660,7 +1002,6 @@ function Settings() {
         </button>
 
       </section>
-
 
       {/* =========================
           TASK PREFERENCES
@@ -672,7 +1013,9 @@ function Settings() {
 
           <div>
 
-            <h2>📊 Task Preferences</h2>
+            <h2>
+              📊 Task Preferences
+            </h2>
 
             <p>
               Customize how your tasks are managed.
@@ -682,6 +1025,7 @@ function Settings() {
 
         </div>
 
+        {/* SORT TASKS */}
 
         <div className="form-group">
 
@@ -692,7 +1036,9 @@ function Settings() {
           <select
             value={sortBy}
             onChange={(e) =>
-              handleSortChange(e.target.value)
+              handleSortChange(
+                e.target.value
+              )
             }
           >
 
@@ -716,6 +1062,7 @@ function Settings() {
 
         </div>
 
+        {/* DEFAULT PRIORITY */}
 
         <div className="form-group">
 
@@ -726,7 +1073,9 @@ function Settings() {
           <select
             value={defaultPriority}
             onChange={(e) =>
-              handlePriorityChange(e.target.value)
+              handlePriorityChange(
+                e.target.value
+              )
             }
           >
 
@@ -748,7 +1097,6 @@ function Settings() {
 
       </section>
 
-
       {/* =========================
           ABOUT
       ========================= */}
@@ -759,7 +1107,9 @@ function Settings() {
 
           <div>
 
-            <h2>ℹ️ About</h2>
+            <h2>
+              ℹ️ About
+            </h2>
 
             <p>
               Information about this application.
@@ -768,7 +1118,6 @@ function Settings() {
           </div>
 
         </div>
-
 
         <div className="about-content">
 
@@ -785,14 +1134,27 @@ function Settings() {
             for internship work tracking.
           </p>
 
-
           <div className="technology-list">
 
-            <span>React.js</span>
-            <span>React Router</span>
-            <span>Context API</span>
-            <span>Vite</span>
-            <span>CSS</span>
+            <span>
+              React.js
+            </span>
+
+            <span>
+              React Router
+            </span>
+
+            <span>
+              Context API
+            </span>
+
+            <span>
+              Vite
+            </span>
+
+            <span>
+              CSS
+            </span>
 
           </div>
 

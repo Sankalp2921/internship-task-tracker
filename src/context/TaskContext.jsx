@@ -14,137 +14,283 @@ export function TaskProvider({ children }) {
   const { user } = useAuth();
 
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
 
 
   // ==========================================
-  // LOAD TASKS FOR CURRENT USER
+  // LOAD EMPLOYEE TASKS
   // ==========================================
 
   useEffect(() => {
 
-    // If nobody is logged in
-    if (!user) {
-      setTasks([]);
-      return;
-    }
+    const loadTasks = async () => {
 
-    // Create unique storage key for user
-    const storageKey = `tasks_${user.email}`;
+      if (!user || !user.token) {
+        setTasks([]);
+        setLoading(false);
+        return;
+      }
 
-    const savedTasks = localStorage.getItem(storageKey);
 
-    if (savedTasks) {
+// Admin does not use /my-tasks
+if (user.role === "admin") {
+  setTasks([]);
+  setLoading(false);
+  return;
+}
 
-      setTasks(JSON.parse(savedTasks));
+      try {
 
-    } else {
+        setLoading(true);
 
-      // New user starts with zero tasks
-      setTasks([]);
+        const response = await fetch(
+          "http://localhost:5001/api/tasks/my-tasks",
+          {
+            method: "GET",
 
-    }
+            headers: {
+              "Authorization": `Bearer ${user.token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+          console.error(
+            "Fetch tasks failed:",
+            data.message
+          );
+
+          setTasks([]);
+          return;
+        }
+
+        const formattedTasks = data.tasks.map(
+  (task) => ({
+    id: task._id,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    priority: task.priority,
+    deadline: task.deadline,
+    assignedTo: task.assignedTo,
+    assignedBy: task.assignedBy,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+
+    // Progress based on task status
+    progress:
+      task.status === "completed"
+        ? 100
+        : task.status === "in-progress"
+          ? 50
+          : 0,
+  })
+);
+
+        setTasks(formattedTasks);
+
+      } catch (error) {
+
+        console.error(
+          "Load tasks error:",
+          error
+        );
+
+        setTasks([]);
+
+      } finally {
+
+        setLoading(false);
+
+      }
+
+    };
+
+    loadTasks();
 
   }, [user]);
 
 
   // ==========================================
-  // ADD TASK
+  // ADD TASK - ADMIN
   // ==========================================
 
-  const addTask = (task) => {
+  const addTask = async (taskData) => {
 
-    if (!user) {
-      return;
+    if (!user || !user.token) {
+
+      return {
+        success: false,
+        message: "You are not logged in.",
+      };
+
     }
 
-    const newTask = {
-      ...task,
-      id: Date.now(),
-    };
+    try {
 
-    setTasks((prevTasks) => {
+      const response = await fetch(
+        "http://localhost:5001/api/tasks",
+        {
+          method: "POST",
 
-      const updatedTasks = [
-        ...prevTasks,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.token}`,
+          },
+
+          body: JSON.stringify(taskData),
+        }
+      );
+
+
+      const data = await response.json();
+
+
+      if (!response.ok) {
+
+        return {
+          success: false,
+          message:
+            data.message ||
+            "Unable to create task.",
+        };
+
+      }
+
+
+      // Add task to local React state
+
+      const newTask = {
+        id: data.task._id,
+        title: data.task.title,
+        description: data.task.description,
+        status: data.task.status,
+        priority: data.task.priority,
+        deadline: data.task.deadline,
+        assignedTo: data.task.assignedTo,
+        assignedBy: data.task.assignedBy,
+        createdAt: data.task.createdAt,
+        updatedAt: data.task.updatedAt,
+      };
+
+
+      setTasks((previousTasks) => [
+        ...previousTasks,
         newTask,
-      ];
+      ]);
 
-      const storageKey = `tasks_${user.email}`;
 
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(updatedTasks)
+      return {
+        success: true,
+        message: data.message,
+        task: newTask,
+      };
+
+    } catch (error) {
+
+      console.error(
+        "Add task error:",
+        error
       );
 
-      return updatedTasks;
+      return {
+        success: false,
+        message:
+          "Unable to connect to the server.",
+      };
 
-    });
+    }
 
   };
 
 
   // ==========================================
-  // DELETE TASK
+  // UPDATE TASK STATUS
   // ==========================================
 
-  const deleteTask = (id) => {
+  const updateTaskStatus = async (
+    taskId,
+    status
+  ) => {
 
-    if (!user) {
-      return;
+    if (!user || !user.token) {
+
+      return {
+        success: false,
+        message: "You are not logged in.",
+      };
+
     }
 
-    setTasks((prevTasks) => {
+    try {
 
-      const updatedTasks = prevTasks.filter(
-        (task) => task.id !== id
+      const response = await fetch(
+        `http://localhost:5001/api/tasks/${taskId}/status`,
+        {
+          method: "PATCH",
+
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.token}`,
+          },
+
+          body: JSON.stringify({
+            status,
+          }),
+        }
       );
 
-      const storageKey = `tasks_${user.email}`;
 
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(updatedTasks)
-      );
-
-      return updatedTasks;
-
-    });
-
-  };
+      const data = await response.json();
 
 
-  // ==========================================
-  // UPDATE TASK
-  // ==========================================
+      if (!response.ok) {
 
-  const updateTask = (id, updatedTask) => {
+        return {
+          success: false,
+          message:
+            data.message ||
+            "Unable to update task.",
+        };
 
-    if (!user) {
-      return;
-    }
+      }
 
-    setTasks((prevTasks) => {
 
-      const updatedTasks = prevTasks.map(
-        (task) =>
-          task.id === id
+      setTasks((previousTasks) =>
+        previousTasks.map((task) =>
+          task.id === taskId
             ? {
                 ...task,
-                ...updatedTask,
+                status: data.task.status,
               }
             : task
+        )
       );
 
-      const storageKey = `tasks_${user.email}`;
 
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(updatedTasks)
+      return {
+        success: true,
+        message: data.message,
+        task: data.task,
+      };
+
+    } catch (error) {
+
+      console.error(
+        "Update task error:",
+        error
       );
 
-      return updatedTasks;
+      return {
+        success: false,
+        message:
+          "Unable to connect to the server.",
+      };
 
-    });
+    }
 
   };
 
@@ -153,17 +299,22 @@ export function TaskProvider({ children }) {
     <TaskContext.Provider
       value={{
         tasks,
+        loading,
         addTask,
-        deleteTask,
-        updateTask,
+        updateTaskStatus,
       }}
     >
+
       {children}
+
     </TaskContext.Provider>
   );
+
 }
 
 
 export function useTasks() {
+
   return useContext(TaskContext);
+
 }

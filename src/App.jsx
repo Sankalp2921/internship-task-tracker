@@ -3,8 +3,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
+import ProtectedRoute from "./components/ProtectedRoute";
 
+import AdminTasks from "./pages/AdminTasks";
 import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import AddTask from "./pages/AddTask";
@@ -14,7 +17,9 @@ import Settings from "./pages/Settings";
 import { TaskProvider } from "./context/TaskContext";
 import { AuthProvider } from "./context/AuthContext";
 
+
 function Layout({ children }) {
+
   return (
     <div className="app-layout">
 
@@ -32,7 +37,9 @@ function Layout({ children }) {
   );
 }
 
+
 function App() {
+
   return (
     <AuthProvider>
 
@@ -41,6 +48,7 @@ function App() {
         <BrowserRouter>
 
           <Routes>
+
 
             {/* =========================
                 LOGIN
@@ -53,87 +61,184 @@ function App() {
 
 
             {/* =========================
-                DASHBOARD
+                ADMIN DASHBOARD
             ========================= */}
 
             <Route
-              path="/dashboard"
+              path="/admin-dashboard"
               element={
-                <Layout>
-                  <Dashboard />
-                </Layout>
+
+                <ProtectedRoute allowedRole="admin">
+
+                  <Layout>
+
+                    <AdminDashboard />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
               }
             />
 
 
             {/* =========================
-                MY TASKS
+                ADMIN TASKS
             ========================= */}
 
             <Route
-              path="/tasks"
+              path="/admin-tasks"
               element={
-                <Layout>
-                  <Tasks />
-                </Layout>
+
+                <ProtectedRoute allowedRole="admin">
+
+                  <Layout>
+
+                    <AdminTasks />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
               }
             />
 
 
             {/* =========================
                 ADD TASK
+                ADMIN ONLY
             ========================= */}
 
             <Route
               path="/add-task"
               element={
-                <Layout>
-                  <AddTask />
-                </Layout>
+
+                <ProtectedRoute allowedRole="admin">
+
+                  <Layout>
+
+                    <AddTask />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
+              }
+            />
+
+
+            {/* =========================
+                EMPLOYEE DASHBOARD
+            ========================= */}
+
+            <Route
+              path="/dashboard"
+              element={
+
+                <ProtectedRoute allowedRole="employee">
+
+                  <Layout>
+
+                    <Dashboard />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
+              }
+            />
+
+
+            {/* =========================
+                EMPLOYEE TASKS
+            ========================= */}
+
+            <Route
+              path="/tasks"
+              element={
+
+                <ProtectedRoute allowedRole="employee">
+
+                  <Layout>
+
+                    <Tasks />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
               }
             />
 
 
             {/* =========================
                 TASK DETAILS
+                EMPLOYEE ONLY
             ========================= */}
 
             <Route
               path="/tasks/:id"
               element={
-                <Layout>
-                  <TaskDetails />
-                </Layout>
+
+                <ProtectedRoute allowedRole="employee">
+
+                  <Layout>
+
+                    <TaskDetails />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
               }
             />
 
 
             {/* =========================
                 COMPLETED TASKS
+                EMPLOYEE ONLY
             ========================= */}
 
             <Route
               path="/completed"
               element={
-                <Layout>
-                  <Tasks />
-                </Layout>
+
+                <ProtectedRoute allowedRole="employee">
+
+                  <Layout>
+
+                  <Tasks completedOnly={true} />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
               }
             />
 
 
             {/* =========================
                 SETTINGS
+                BOTH ROLES
             ========================= */}
 
             <Route
               path="/settings"
               element={
-                <Layout>
-                  <Settings />
-                </Layout>
+
+                <ProtectedRoute>
+
+                  <Layout>
+
+                    <Settings />
+
+                  </Layout>
+
+                </ProtectedRoute>
+
               }
             />
+
 
           </Routes>
 
@@ -144,5 +249,6 @@ function App() {
     </AuthProvider>
   );
 }
+
 
 export default App;

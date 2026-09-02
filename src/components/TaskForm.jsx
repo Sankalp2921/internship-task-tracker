@@ -1,52 +1,111 @@
 import React, { useState } from "react";
 
-function TaskForm({ onAdd }) {
+function TaskForm({ onAdd, employees = [] }) {
+
+  // ==========================================
+  // GET DEFAULT PRIORITY
+  // ==========================================
+
+  const savedPriority =
+    localStorage.getItem("defaultPriority") || "Medium";
+
+  const defaultPriority =
+    savedPriority.toLowerCase();
+
+
+  // ==========================================
+  // TASK STATE
+  // ==========================================
 
   const [task, setTask] = useState({
     title: "",
     description: "",
-    technology: "React.js",
-    priority: "Medium",
+    assignedTo: "",
+    priority: defaultPriority,
     deadline: "",
-    status: "Pending",
-    progress: 0
   });
 
+
+  // ==========================================
+  // HANDLE INPUT CHANGE
+  // ==========================================
+
   const handleChange = (e) => {
+
     setTask({
       ...task,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
+
   };
 
-  const handleSubmit = (e) => {
+
+  // ==========================================
+  // SUBMIT
+  // ==========================================
+
+  const handleSubmit = async (e) => {
+
     e.preventDefault();
 
-    if (!task.title || !task.deadline) {
-      alert("Please enter task title and deadline.");
+
+    if (
+      !task.title.trim() ||
+      !task.description.trim() ||
+      !task.assignedTo ||
+      !task.deadline
+    ) {
+
+      alert(
+        "Please enter title, description, employee and deadline."
+      );
+
       return;
+
     }
 
-    onAdd({
-      ...task,
-      id: Date.now(),
-      progress: Number(task.progress)
+
+    await onAdd({
+      title: task.title.trim(),
+      description: task.description.trim(),
+      assignedTo: task.assignedTo,
+      priority: task.priority,
+      deadline: task.deadline,
     });
 
-    // Clear form after adding task
+
+    // ==========================================
+    // RESET FORM
+    // ==========================================
+
+    const currentDefaultPriority =
+      (
+        localStorage.getItem("defaultPriority") ||
+        "Medium"
+      ).toLowerCase();
+
+
     setTask({
       title: "",
       description: "",
-      technology: "React.js",
-      priority: "Medium",
+      assignedTo: "",
+      priority: currentDefaultPriority,
       deadline: "",
-      status: "Pending",
-      progress: 0
     });
+
   };
 
+
   return (
-    <form className="task-form" onSubmit={handleSubmit}>
+    <form
+      className="task-form"
+      onSubmit={handleSubmit}
+    >
+
+
+      {/* =========================
+          TITLE
+      ========================= */}
 
       <input
         type="text"
@@ -56,6 +115,11 @@ function TaskForm({ onAdd }) {
         onChange={handleChange}
       />
 
+
+      {/* =========================
+          DESCRIPTION
+      ========================= */}
+
       <textarea
         name="description"
         placeholder="Task description"
@@ -63,27 +127,63 @@ function TaskForm({ onAdd }) {
         onChange={handleChange}
       />
 
+
+      {/* =========================
+          ASSIGN EMPLOYEE
+      ========================= */}
+
       <select
-        name="technology"
-        value={task.technology}
+        name="assignedTo"
+        value={task.assignedTo}
         onChange={handleChange}
       >
-        <option>React.js</option>
-        <option>JavaScript</option>
-        <option>Node.js</option>
-        <option>MongoDB</option>
-        <option>HTML/CSS</option>
+
+        <option value="">
+          Select Employee
+        </option>
+
+        {employees.map((employee) => (
+
+          <option
+            key={employee._id}
+            value={employee._id}
+          >
+            {employee.name} ({employee.email})
+          </option>
+
+        ))}
+
       </select>
+
+
+      {/* =========================
+          PRIORITY
+      ========================= */}
 
       <select
         name="priority"
         value={task.priority}
         onChange={handleChange}
       >
-        <option>Low</option>
-        <option>Medium</option>
-        <option>High</option>
+
+        <option value="low">
+          Low
+        </option>
+
+        <option value="medium">
+          Medium
+        </option>
+
+        <option value="high">
+          High
+        </option>
+
       </select>
+
+
+      {/* =========================
+          DEADLINE
+      ========================= */}
 
       <input
         type="date"
@@ -92,25 +192,10 @@ function TaskForm({ onAdd }) {
         onChange={handleChange}
       />
 
-      <select
-        name="status"
-        value={task.status}
-        onChange={handleChange}
-      >
-        <option>Pending</option>
-        <option>In Progress</option>
-        <option>Completed</option>
-      </select>
 
-      <input
-        type="number"
-        name="progress"
-        min="0"
-        max="100"
-        value={task.progress}
-        onChange={handleChange}
-        placeholder="Progress %"
-      />
+      {/* =========================
+          SUBMIT
+      ========================= */}
 
       <button type="submit">
         Add Task
