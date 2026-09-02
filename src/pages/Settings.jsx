@@ -2,7 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// ==========================================
+// API URL
+// ==========================================
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5001"
+).replace(/\/$/, "");
+
+
 function Settings() {
+
   const navigate = useNavigate();
 
   const {
@@ -10,6 +20,7 @@ function Settings() {
     updateUser,
     logout,
   } = useAuth();
+
 
   /* =========================
      PROFILE
@@ -30,11 +41,13 @@ function Settings() {
   const [profileLoading, setProfileLoading] =
     useState(false);
 
+
   /* =========================
      NOTIFICATIONS
   ========================= */
 
   const [notifications, setNotifications] = useState(() => {
+
     const saved =
       localStorage.getItem("notifications");
 
@@ -46,38 +59,49 @@ function Settings() {
           taskCompleted: true,
           emailNotifications: false,
         };
+
   });
+
 
   /* =========================
      APPEARANCE
   ========================= */
 
   const [theme, setTheme] = useState(() => {
+
     return (
       localStorage.getItem("theme") ||
       "system"
     );
+
   });
+
 
   /* =========================
      TASK PREFERENCES
   ========================= */
 
   const [sortBy, setSortBy] = useState(() => {
+
     return (
       localStorage.getItem("sortBy") ||
       "recent"
     );
+
   });
+
 
   const [defaultPriority, setDefaultPriority] =
     useState(() => {
+
       return (
         localStorage.getItem(
           "defaultPriority"
         ) || "Medium"
       );
+
     });
+
 
   /* =========================
      PASSWORD
@@ -99,11 +123,13 @@ function Settings() {
   const [passwordLoading, setPasswordLoading] =
     useState(false);
 
+
   /* =========================
      KEEP PROFILE IN SYNC
   ========================= */
 
   useEffect(() => {
+
     if (!user) {
       return;
     }
@@ -111,21 +137,27 @@ function Settings() {
     setName(user.name || "");
     setEmail(user.email || "");
     setProfilePhoto(user.profilePhoto || "");
+
   }, [user]);
+
 
   /* =========================
      PROFILE PHOTO
   ========================= */
 
   const handlePhotoChange = (e) => {
+
     const file = e.target.files[0];
 
     if (!file) {
       return;
     }
 
+
     // Maximum 2 MB
+
     if (file.size > 2 * 1024 * 1024) {
+
       setMessage(
         "Profile photo must be smaller than 2 MB."
       );
@@ -133,28 +165,37 @@ function Settings() {
       return;
     }
 
+
     const reader = new FileReader();
 
     reader.onloadend = () => {
+
       setProfilePhoto(
         reader.result
       );
+
     };
 
     reader.readAsDataURL(file);
+
   };
+
 
   /* =========================
      SAVE PROFILE
   ========================= */
 
   const handleProfileSave = async (e) => {
+
     e.preventDefault();
 
     setMessage("");
 
+
     // Check login
+
     if (!user || !user.token) {
+
       setMessage(
         "You are not logged in."
       );
@@ -162,8 +203,11 @@ function Settings() {
       return;
     }
 
+
     // Validate name
+
     if (!name.trim()) {
+
       setMessage(
         "Name cannot be empty."
       );
@@ -171,8 +215,11 @@ function Settings() {
       return;
     }
 
+
     // Validate email
+
     if (!email.trim()) {
+
       setMessage(
         "Email cannot be empty."
       );
@@ -180,17 +227,27 @@ function Settings() {
       return;
     }
 
+
     try {
+
       setProfileLoading(true);
 
+
       const result = await updateUser({
+
         name: name.trim(),
+
         email: email.trim(),
+
         profilePhoto,
+
       });
 
+
       // Backend returned error
+
       if (!result.success) {
+
         setMessage(
           result.message ||
           "Unable to update profile."
@@ -199,7 +256,9 @@ function Settings() {
         return;
       }
 
+
       // Update form with backend response
+
       setName(
         result.user.name
       );
@@ -212,15 +271,21 @@ function Settings() {
         result.user.profilePhoto || ""
       );
 
+
       setMessage(
         "Profile updated successfully."
       );
 
+
       setTimeout(() => {
+
         setMessage("");
+
       }, 3000);
 
+
     } catch (error) {
+
       console.error(
         "Profile save error:",
         error
@@ -230,94 +295,130 @@ function Settings() {
         "Unable to update profile."
       );
 
+
     } finally {
+
       setProfileLoading(false);
+
     }
+
   };
+
 
   /* =========================
      NOTIFICATION CHANGE
   ========================= */
 
   const handleNotificationChange = (key) => {
+
     const updated = {
+
       ...notifications,
+
       [key]:
         !notifications[key],
+
     };
+
 
     setNotifications(updated);
 
+
     localStorage.setItem(
+
       "notifications",
+
       JSON.stringify(updated)
+
     );
+
   };
+
 
   /* =========================
      THEME
   ========================= */
 
   useEffect(() => {
+
     localStorage.setItem(
       "theme",
       theme
     );
 
+
     if (theme === "dark") {
+
       document.body.classList.add(
         "dark-mode"
       );
+
     }
 
     else if (theme === "light") {
+
       document.body.classList.remove(
         "dark-mode"
       );
+
     }
 
     else {
+
       const prefersDark =
         window.matchMedia(
           "(prefers-color-scheme: dark)"
         ).matches;
 
+
       if (prefersDark) {
+
         document.body.classList.add(
           "dark-mode"
         );
+
       }
 
       else {
+
         document.body.classList.remove(
           "dark-mode"
         );
+
       }
+
     }
 
   }, [theme]);
+
 
   /* =========================
      TASK PREFERENCES
   ========================= */
 
   const handleSortChange = (value) => {
+
     setSortBy(value);
 
     localStorage.setItem(
       "sortBy",
       value
     );
+
   };
 
+
   const handlePriorityChange = (value) => {
+
     setDefaultPriority(value);
 
     localStorage.setItem(
       "defaultPriority",
       value
     );
+
   };
+
 
   /* =========================
      CHANGE PASSWORD
@@ -325,21 +426,25 @@ function Settings() {
   ========================= */
 
   const handlePasswordChange = async (e) => {
+
     e.preventDefault();
 
     setMessage("");
+
 
     /* -------------------------
        ADMIN CHECK
     ------------------------- */
 
     if (!user || user.role !== "admin") {
+
       setMessage(
         "Only admin can change the password."
       );
 
       return;
     }
+
 
     /* -------------------------
        VALIDATE FIELDS
@@ -350,12 +455,14 @@ function Settings() {
       !newPassword ||
       !confirmPassword
     ) {
+
       setMessage(
         "Please fill all password fields."
       );
 
       return;
     }
+
 
     /* -------------------------
        CHECK NEW PASSWORD
@@ -365,12 +472,14 @@ function Settings() {
       newPassword !==
       confirmPassword
     ) {
+
       setMessage(
         "New passwords do not match."
       );
 
       return;
     }
+
 
     /* -------------------------
        PASSWORD LENGTH
@@ -379,6 +488,7 @@ function Settings() {
     if (
       newPassword.length < 6
     ) {
+
       setMessage(
         "New password must be at least 6 characters."
       );
@@ -386,11 +496,13 @@ function Settings() {
       return;
     }
 
+
     /* -------------------------
        CHECK LOGIN
     ------------------------- */
 
     if (!user.token) {
+
       setMessage(
         "You are not logged in."
       );
@@ -398,48 +510,67 @@ function Settings() {
       return;
     }
 
+
     try {
+
       setPasswordLoading(true);
+
 
       /* -------------------------
          API REQUEST
       ------------------------- */
 
       const response = await fetch(
-        "http://localhost:5001/api/auth/change-password",
+
+        `${API_URL}/api/auth/change-password`,
+
         {
           method: "PATCH",
 
           headers: {
+
             "Content-Type":
               "application/json",
 
             "Authorization":
               `Bearer ${user.token}`,
+
           },
 
           body: JSON.stringify({
+
             currentPassword,
+
             newPassword,
+
           }),
+
         }
+
       );
+
 
       const data =
         await response.json();
+
 
       /* -------------------------
          API ERROR
       ------------------------- */
 
       if (!response.ok) {
+
         setMessage(
+
           data.message ||
+
           "Unable to change password."
+
         );
 
         return;
       }
+
 
       /* -------------------------
          SUCCESS
@@ -451,28 +582,40 @@ function Settings() {
 
       setConfirmPassword("");
 
+
       setMessage(
         "Password changed successfully."
       );
 
+
       setTimeout(() => {
+
         setMessage("");
+
       }, 3000);
 
+
     } catch (error) {
+
       console.error(
         "Change password error:",
         error
       );
 
+
       setMessage(
         "Unable to connect to the server."
       );
 
+
     } finally {
+
       setPasswordLoading(false);
+
     }
+
   };
+
 
   /* =========================
      LOGOUT
@@ -480,13 +623,18 @@ function Settings() {
   ========================= */
 
   const handleLogout = () => {
+
     logout();
 
     navigate("/");
+
   };
 
+
   return (
+
     <main className="page settings-page">
+
 
       {/* =========================
           PAGE HEADING
@@ -504,15 +652,21 @@ function Settings() {
 
       </div>
 
+
       {/* =========================
           MESSAGE
       ========================= */}
 
       {message && (
+
         <div className="settings-message">
+
           {message}
+
         </div>
+
       )}
+
 
       {/* =========================
           PROFILE
@@ -536,10 +690,12 @@ function Settings() {
 
         </div>
 
+
         <form
           className="settings-form"
           onSubmit={handleProfileSave}
         >
+
 
           {/* PROFILE PHOTO */}
 
@@ -561,6 +717,7 @@ function Settings() {
 
             )}
 
+
             <label className="photo-button">
 
               Change Photo
@@ -574,6 +731,7 @@ function Settings() {
             </label>
 
           </div>
+
 
           {/* NAME */}
 
@@ -595,6 +753,7 @@ function Settings() {
 
           </div>
 
+
           {/* EMAIL */}
 
           <div className="form-group">
@@ -615,6 +774,7 @@ function Settings() {
 
           </div>
 
+
           {/* SAVE PROFILE */}
 
           <button
@@ -632,6 +792,7 @@ function Settings() {
         </form>
 
       </section>
+
 
       {/* =========================
           NOTIFICATIONS
@@ -655,7 +816,9 @@ function Settings() {
 
         </div>
 
+
         <div className="settings-options">
+
 
           {/* TASK ASSIGNED */}
 
@@ -687,6 +850,7 @@ function Settings() {
 
           </label>
 
+
           {/* DEADLINE REMINDER */}
 
           <label className="setting-option">
@@ -717,6 +881,7 @@ function Settings() {
 
           </label>
 
+
           {/* TASK COMPLETED */}
 
           <label className="setting-option">
@@ -746,6 +911,7 @@ function Settings() {
             />
 
           </label>
+
 
           {/* EMAIL NOTIFICATIONS */}
 
@@ -781,6 +947,7 @@ function Settings() {
 
       </section>
 
+
       {/* =========================
           APPEARANCE
       ========================= */}
@@ -803,7 +970,9 @@ function Settings() {
 
         </div>
 
+
         <div className="theme-options">
+
 
           {/* LIGHT */}
 
@@ -821,6 +990,7 @@ function Settings() {
             ☀️ Light
           </button>
 
+
           {/* DARK */}
 
           <button
@@ -836,6 +1006,7 @@ function Settings() {
           >
             🌙 Dark
           </button>
+
 
           {/* SYSTEM */}
 
@@ -856,6 +1027,7 @@ function Settings() {
         </div>
 
       </section>
+
 
       {/* =========================
           SECURITY
@@ -882,10 +1054,12 @@ function Settings() {
 
           </div>
 
+
           <form
             className="settings-form"
             onSubmit={handlePasswordChange}
           >
+
 
             {/* CURRENT PASSWORD */}
 
@@ -908,6 +1082,7 @@ function Settings() {
 
             </div>
 
+
             {/* NEW PASSWORD */}
 
             <div className="form-group">
@@ -928,6 +1103,7 @@ function Settings() {
               />
 
             </div>
+
 
             {/* CONFIRM PASSWORD */}
 
@@ -950,6 +1126,7 @@ function Settings() {
 
             </div>
 
+
             {/* CHANGE PASSWORD */}
 
             <button
@@ -969,6 +1146,7 @@ function Settings() {
         </section>
 
       )}
+
 
       {/* =========================
           LOGOUT
@@ -993,6 +1171,7 @@ function Settings() {
 
         </div>
 
+
         <button
           type="button"
           className="danger-button"
@@ -1002,6 +1181,7 @@ function Settings() {
         </button>
 
       </section>
+
 
       {/* =========================
           TASK PREFERENCES
@@ -1024,6 +1204,7 @@ function Settings() {
           </div>
 
         </div>
+
 
         {/* SORT TASKS */}
 
@@ -1062,6 +1243,7 @@ function Settings() {
 
         </div>
 
+
         {/* DEFAULT PRIORITY */}
 
         <div className="form-group">
@@ -1097,6 +1279,7 @@ function Settings() {
 
       </section>
 
+
       {/* =========================
           ABOUT
       ========================= */}
@@ -1119,6 +1302,7 @@ function Settings() {
 
         </div>
 
+
         <div className="about-content">
 
           <h3>
@@ -1133,6 +1317,7 @@ function Settings() {
             A task management dashboard designed
             for internship work tracking.
           </p>
+
 
           <div className="technology-list">
 
@@ -1157,6 +1342,7 @@ function Settings() {
             </span>
 
           </div>
+
 
           <p className="copyright">
             © 2026 Internship Task Tracker

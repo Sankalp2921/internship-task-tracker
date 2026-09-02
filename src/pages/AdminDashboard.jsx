@@ -2,6 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import StatCard from "../components/StatCard";
 
+// ==========================================
+// API URL
+// ==========================================
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5001"
+).replace(/\/$/, "");
+
+
 function AdminDashboard() {
 
   const { user } = useAuth();
@@ -48,7 +57,7 @@ function AdminDashboard() {
         // ======================================
 
         const statsResponse = await fetch(
-          "http://localhost:5001/api/tasks/admin/stats",
+          `${API_URL}/api/tasks/admin/stats`,
           {
             method: "GET",
 
@@ -82,7 +91,7 @@ function AdminDashboard() {
         // ======================================
 
         const tasksResponse = await fetch(
-          "http://localhost:5001/api/tasks/admin/all",
+          `${API_URL}/api/tasks/admin/all`,
           {
             method: "GET",
 
@@ -320,9 +329,7 @@ function AdminDashboard() {
                   </strong>
 
                   <p>
-
                     {task.status}
-
                   </p>
 
                 </div>
@@ -335,9 +342,7 @@ function AdminDashboard() {
                   </strong>
 
                   <p>
-
                     {task.priority}
-
                   </p>
 
                 </div>

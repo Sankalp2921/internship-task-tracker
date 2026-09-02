@@ -2,6 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// ==========================================
+// API URL
+// ==========================================
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5001"
+).replace(/\/$/, "");
+
+
 function AdminTasks() {
 
   const { user } = useAuth();
@@ -19,7 +28,12 @@ function AdminTasks() {
   const [status, setStatus] = useState(
     urlStatus || "All"
   );
-  // Edit state
+
+
+  // ==========================================
+  // EDIT STATE
+  // ==========================================
+
   const [editingTask, setEditingTask] = useState(null);
 
   const [editForm, setEditForm] = useState({
@@ -44,10 +58,11 @@ function AdminTasks() {
       return;
     }
 
+
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/tasks/admin/all",
+        `${API_URL}/api/tasks/admin/all`,
         {
           method: "GET",
 
@@ -57,7 +72,9 @@ function AdminTasks() {
         }
       );
 
+
       const data = await response.json();
+
 
       if (!response.ok) {
 
@@ -69,7 +86,9 @@ function AdminTasks() {
         return;
       }
 
+
       setTasks(data.tasks);
+
 
     } catch (error) {
 
@@ -82,11 +101,13 @@ function AdminTasks() {
         "Unable to connect to the server."
       );
 
+
     } finally {
 
       setLoading(false);
 
     }
+
   };
 
 
@@ -105,23 +126,26 @@ function AdminTasks() {
   // DELETE TASK
   // ==========================================
 
-    const handleDelete = async (taskId) => {
+  const handleDelete = async (taskId) => {
 
-  setError("");
-  setSuccess("");
+    setError("");
+    setSuccess("");
 
-  const confirmDelete = window.confirm(
+
+    const confirmDelete = window.confirm(
       "Are you sure you want to delete this task?"
     );
+
 
     if (!confirmDelete) {
       return;
     }
 
+
     try {
 
       const response = await fetch(
-        `http://localhost:5001/api/tasks/admin/${taskId}`,
+        `${API_URL}/api/tasks/admin/${taskId}`,
         {
           method: "DELETE",
 
@@ -131,7 +155,9 @@ function AdminTasks() {
         }
       );
 
+
       const data = await response.json();
+
 
       if (!response.ok) {
 
@@ -143,14 +169,18 @@ function AdminTasks() {
         return;
       }
 
+
       alert("Task deleted successfully.");
 
+
       // Remove deleted task from UI
+
       setTasks((previousTasks) =>
         previousTasks.filter(
           (task) => task._id !== taskId
         )
       );
+
 
     } catch (error) {
 
@@ -162,7 +192,9 @@ function AdminTasks() {
       alert(
         "Unable to connect to the server."
       );
+
     }
+
   };
 
 
@@ -182,6 +214,7 @@ function AdminTasks() {
         ? task.deadline.substring(0, 10)
         : "",
     });
+
   };
 
 
@@ -195,6 +228,7 @@ function AdminTasks() {
       ...editForm,
       [e.target.name]: e.target.value,
     });
+
   };
 
 
@@ -202,17 +236,18 @@ function AdminTasks() {
   // UPDATE TASK
   // ==========================================
 
-    const handleUpdate = async (e) => {
+  const handleUpdate = async (e) => {
 
-        e.preventDefault();
+    e.preventDefault();
 
-        setError("");
-        setSuccess("");
+    setError("");
+    setSuccess("");
 
-        try {
+
+    try {
 
       const response = await fetch(
-        `http://localhost:5001/api/tasks/admin/${editingTask._id}`,
+        `${API_URL}/api/tasks/admin/${editingTask._id}`,
         {
           method: "PATCH",
 
@@ -225,7 +260,9 @@ function AdminTasks() {
         }
       );
 
+
       const data = await response.json();
+
 
       if (!response.ok) {
 
@@ -237,9 +274,12 @@ function AdminTasks() {
         return;
       }
 
+
       alert("Task updated successfully.");
 
+
       // Update task in UI
+
       setTasks((previousTasks) =>
         previousTasks.map((task) =>
           task._id === editingTask._id
@@ -248,8 +288,11 @@ function AdminTasks() {
         )
       );
 
+
       // Close edit form
+
       setEditingTask(null);
+
 
     } catch (error) {
 
@@ -261,25 +304,32 @@ function AdminTasks() {
       alert(
         "Unable to connect to the server."
       );
+
     }
+
   };
+
+
   // ==========================================
-// FILTER TASKS
-// ==========================================
+  // FILTER TASKS
+  // ==========================================
 
-const filteredTasks = tasks.filter((task) => {
+  const filteredTasks = tasks.filter((task) => {
 
-  const matchesSearch = task.title
-    ?.toLowerCase()
-    .includes(search.toLowerCase());
+    const matchesSearch = task.title
+      ?.toLowerCase()
+      .includes(search.toLowerCase());
 
-  const matchesStatus =
-    status === "All" ||
-    task.status === status;
 
-  return matchesSearch && matchesStatus;
+    const matchesStatus =
+      status === "All" ||
+      task.status === status;
 
-});
+
+    return matchesSearch && matchesStatus;
+
+  });
+
 
   // ==========================================
   // LOADING
@@ -304,6 +354,7 @@ const filteredTasks = tasks.filter((task) => {
 
       </main>
     );
+
   }
 
 
@@ -343,55 +394,60 @@ const filteredTasks = tasks.filter((task) => {
 
       )}
 
+
       {success && (
 
         <div className="success-message">
-            ✅ {success}
+          ✅ {success}
         </div>
 
-        )}
+      )}
 
-        {/* =========================
-    SEARCH AND FILTER
-========================= */}
 
-<div className="filters">
+      {/* =========================
+          SEARCH AND FILTER
+      ========================= */}
 
-  <input
-    type="text"
-    placeholder="🔍 Search tasks..."
-    value={search}
-    onChange={(e) =>
-      setSearch(e.target.value)
-    }
-  />
+      <div className="filters">
 
-  <select
-    value={status}
-    onChange={(e) =>
-      setStatus(e.target.value)
-    }
-  >
+        <input
+          type="text"
+          placeholder="🔍 Search tasks..."
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
+        />
 
-    <option value="All">
-      All
-    </option>
 
-    <option value="pending">
-      Pending
-    </option>
+        <select
+          value={status}
+          onChange={(e) =>
+            setStatus(e.target.value)
+          }
+        >
 
-    <option value="in-progress">
-      In Progress
-    </option>
+          <option value="All">
+            All
+          </option>
 
-    <option value="completed">
-      Completed
-    </option>
+          <option value="pending">
+            Pending
+          </option>
 
-  </select>
+          <option value="in-progress">
+            In Progress
+          </option>
 
-</div>
+          <option value="completed">
+            Completed
+          </option>
+
+        </select>
+
+      </div>
+
+
       {/* =========================
           NO TASKS
       ========================= */}
@@ -524,10 +580,13 @@ const filteredTasks = tasks.filter((task) => {
 
                 <button
                   className="edit-button"
-                  onClick={() => handleEdit(task)}
+                  onClick={() =>
+                    handleEdit(task)
+                  }
                 >
                   ✏️ Edit
                 </button>
+
 
                 <button
                   className="delete-button"
@@ -635,6 +694,7 @@ const filteredTasks = tasks.filter((task) => {
                 >
                   💾 Save Changes
                 </button>
+
 
                 <button
                   type="button"

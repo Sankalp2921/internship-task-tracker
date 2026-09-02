@@ -9,6 +9,15 @@ import { useAuth } from "./AuthContext";
 
 const TaskContext = createContext();
 
+// ==========================================
+// API URL
+// ==========================================
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5001"
+).replace(/\/$/, "");
+
+
 export function TaskProvider({ children }) {
 
   const { user } = useAuth();
@@ -32,19 +41,20 @@ export function TaskProvider({ children }) {
       }
 
 
-// Admin does not use /my-tasks
-if (user.role === "admin") {
-  setTasks([]);
-  setLoading(false);
-  return;
-}
+      // Admin does not use /my-tasks
+      if (user.role === "admin") {
+        setTasks([]);
+        setLoading(false);
+        return;
+      }
+
 
       try {
 
         setLoading(true);
 
         const response = await fetch(
-          "http://localhost:5001/api/tasks/my-tasks",
+          `${API_URL}/api/tasks/my-tasks`,
           {
             method: "GET",
 
@@ -54,7 +64,9 @@ if (user.role === "admin") {
           }
         );
 
+
         const data = await response.json();
+
 
         if (!response.ok) {
 
@@ -67,30 +79,33 @@ if (user.role === "admin") {
           return;
         }
 
-        const formattedTasks = data.tasks.map(
-  (task) => ({
-    id: task._id,
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    priority: task.priority,
-    deadline: task.deadline,
-    assignedTo: task.assignedTo,
-    assignedBy: task.assignedBy,
-    createdAt: task.createdAt,
-    updatedAt: task.updatedAt,
 
-    // Progress based on task status
-    progress:
-      task.status === "completed"
-        ? 100
-        : task.status === "in-progress"
-          ? 50
-          : 0,
-  })
-);
+        const formattedTasks = data.tasks.map(
+          (task) => ({
+            id: task._id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            deadline: task.deadline,
+            assignedTo: task.assignedTo,
+            assignedBy: task.assignedBy,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+
+            // Progress based on task status
+            progress:
+              task.status === "completed"
+                ? 100
+                : task.status === "in-progress"
+                  ? 50
+                  : 0,
+          })
+        );
+
 
         setTasks(formattedTasks);
+
 
       } catch (error) {
 
@@ -101,6 +116,7 @@ if (user.role === "admin") {
 
         setTasks([]);
 
+
       } finally {
 
         setLoading(false);
@@ -108,6 +124,7 @@ if (user.role === "admin") {
       }
 
     };
+
 
     loadTasks();
 
@@ -129,10 +146,11 @@ if (user.role === "admin") {
 
     }
 
+
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/tasks",
+        `${API_URL}/api/tasks`,
         {
           method: "POST",
 
@@ -189,6 +207,7 @@ if (user.role === "admin") {
         task: newTask,
       };
 
+
     } catch (error) {
 
       console.error(
@@ -225,10 +244,11 @@ if (user.role === "admin") {
 
     }
 
+
     try {
 
       const response = await fetch(
-        `http://localhost:5001/api/tasks/${taskId}/status`,
+        `${API_URL}/api/tasks/${taskId}/status`,
         {
           method: "PATCH",
 
@@ -277,6 +297,7 @@ if (user.role === "admin") {
         task: data.task,
       };
 
+
     } catch (error) {
 
       console.error(
@@ -295,6 +316,10 @@ if (user.role === "admin") {
   };
 
 
+  // ==========================================
+  // PROVIDER
+  // ==========================================
+
   return (
     <TaskContext.Provider
       value={{
@@ -312,6 +337,10 @@ if (user.role === "admin") {
 
 }
 
+
+// ==========================================
+// USE TASKS
+// ==========================================
 
 export function useTasks() {
 

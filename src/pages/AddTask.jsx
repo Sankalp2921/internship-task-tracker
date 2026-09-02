@@ -4,6 +4,15 @@ import TaskForm from "../components/TaskForm";
 import { useTasks } from "../context/TaskContext";
 import { useAuth } from "../context/AuthContext";
 
+// ==========================================
+// API URL
+// ==========================================
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5001"
+).replace(/\/$/, "");
+
+
 function AddTask() {
 
   const navigate = useNavigate();
@@ -33,7 +42,7 @@ function AddTask() {
       try {
 
         const response = await fetch(
-          "http://localhost:5001/api/admin/users",
+          `${API_URL}/api/admin/users`,
           {
             method: "GET",
 

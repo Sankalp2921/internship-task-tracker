@@ -6,6 +6,20 @@ import React, {
 
 const AuthContext = createContext();
 
+// ==========================================
+// API URL
+// ==========================================
+
+// Local development:
+// http://localhost:5001
+//
+// Production:
+// Vercel will use VITE_API_URL from environment variables.
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5001"
+).replace(/\/$/, "");
+
 
 // ==========================================
 // GET CURRENT USER
@@ -61,7 +75,7 @@ export function AuthProvider({ children }) {
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/auth/register",
+        `${API_URL}/api/auth/register`,
         {
           method: "POST",
 
@@ -100,7 +114,6 @@ export function AuthProvider({ children }) {
           "OTP sent successfully.",
 
         email: data.email || email,
-
       };
 
 
@@ -135,7 +148,7 @@ export function AuthProvider({ children }) {
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/auth/verify-otp",
+        `${API_URL}/api/auth/verify-otp`,
         {
           method: "POST",
 
@@ -166,9 +179,9 @@ export function AuthProvider({ children }) {
       }
 
 
-      // -------------------------------
+      // --------------------------------
       // BACKEND RETURNED JWT + USER
-      // -------------------------------
+      // --------------------------------
 
       const loggedInUser = {
 
@@ -188,9 +201,9 @@ export function AuthProvider({ children }) {
       };
 
 
-      // -------------------------------
+      // --------------------------------
       // SAVE USER
-      // -------------------------------
+      // --------------------------------
 
       setUser(loggedInUser);
 
@@ -243,7 +256,7 @@ export function AuthProvider({ children }) {
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/auth/send-login-otp",
+        `${API_URL}/api/auth/send-login-otp`,
         {
           method: "POST",
 
@@ -324,7 +337,7 @@ export function AuthProvider({ children }) {
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/auth/verify-login-otp",
+        `${API_URL}/api/auth/verify-login-otp`,
         {
           method: "POST",
 
@@ -358,9 +371,9 @@ export function AuthProvider({ children }) {
       }
 
 
-      // -------------------------------
+      // --------------------------------
       // CREATE FRONTEND USER OBJECT
-      // -------------------------------
+      // --------------------------------
 
       const loggedInUser = {
 
@@ -380,9 +393,9 @@ export function AuthProvider({ children }) {
       };
 
 
-      // -------------------------------
+      // --------------------------------
       // SAVE USER
-      // -------------------------------
+      // --------------------------------
 
       setUser(loggedInUser);
 
@@ -436,7 +449,7 @@ export function AuthProvider({ children }) {
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/auth/login",
+        `${API_URL}/api/auth/login`,
         {
           method: "POST",
 
@@ -552,7 +565,7 @@ export function AuthProvider({ children }) {
     try {
 
       const response = await fetch(
-        "http://localhost:5001/api/auth/profile",
+        `${API_URL}/api/auth/profile`,
         {
           method: "PATCH",
 
