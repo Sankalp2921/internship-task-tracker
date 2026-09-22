@@ -174,7 +174,9 @@ This OTP will expire in 10 minutes.
 
 If you did not request this registration, please ignore this email.
 
-Internship Task Tracker`
+Internship Task Tracker
+
+Regards Sankalp Khade`
     );
 
 
