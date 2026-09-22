@@ -440,9 +440,9 @@ router.post(
       // -------------------------------
 
       await sendEmail(
-        normalizedEmail,
-        "Internship Task Tracker - Login OTP",
-        `Hello ${user.name},
+  normalizedEmail,
+  "Internship Task Tracker - Login OTP",
+  `Hello ${user.name},
 
 Your OTP for Internship Task Tracker login is:
 
@@ -452,10 +452,11 @@ This OTP will expire in 10 minutes.
 
 If you did not request this login, please ignore this email.
 
-Internship Task Tracker,
-Regards Sankalp Khade`
-      );
+Internship Task Tracker
 
+Regards,
+Sankalp Khade`
+);
 
       return res.status(200).json({
         message:
