@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "./leave.css";
 
-const API = "http://localhost:5001/api/leave";
+const API = `${import.meta.env.VITE_API_URL}/api/leave`;
 
 function getToken(user) {
   if (user?.token) return user.token;
