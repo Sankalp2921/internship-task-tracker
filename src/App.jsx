@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import Attendance from "./pages/Attendance";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -13,10 +13,11 @@ import Tasks from "./pages/Tasks";
 import AddTask from "./pages/AddTask";
 import TaskDetails from "./pages/TaskDetails";
 import Settings from "./pages/Settings";
-
+import Leave from "./pages/Leave";
+import AdminLeaves from "./pages/AdminLeaves";
 import { TaskProvider } from "./context/TaskContext";
 import { AuthProvider } from "./context/AuthContext";
-
+import EmployeeAttendance from "./pages/EmployeeAttendance";
 
 function Layout({ children }) {
 
@@ -215,8 +216,36 @@ function App() {
 
               }
             />
+            {/* =========================
+                ATTENDANCE
+                BOTH ROLES
+            ========================= */}
 
+            <Route
+              path="/attendance"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Attendance />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
 
+            {/* =========================
+                  EMPLOYEE ATTENDANCE
+                  ADMIN ONLY
+              ========================= */}
+              <Route
+                path="/employee-attendance"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <Layout>
+                      <EmployeeAttendance />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
             {/* =========================
                 SETTINGS
                 BOTH ROLES
@@ -239,7 +268,29 @@ function App() {
               }
             />
 
+            {/* EMPLOYEE LEAVE REQUESTS */}
+              <Route
+                path="/leave"
+                element={
+                  <ProtectedRoute allowedRole="employee">
+                    <Layout>
+                      <Leave />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
 
+              {/* ADMIN LEAVE MANAGEMENT */}
+              <Route
+                path="/admin-leaves"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <Layout>
+                      <AdminLeaves />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
           </Routes>
 
         </BrowserRouter>

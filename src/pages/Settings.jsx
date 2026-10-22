@@ -2,17 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-// ==========================================
-// API URL
-// ==========================================
-
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5001"
 ).replace(/\/$/, "");
 
-
 function Settings() {
-
   const navigate = useNavigate();
 
   const {
@@ -21,826 +15,560 @@ function Settings() {
     logout,
   } = useAuth();
 
+  // ==========================================
+  // PROFILE
+  // ==========================================
 
-  /* =========================
-     PROFILE
-  ========================= */
-
-  const [name, setName] = useState(
-    user?.name || ""
-  );
-
-  const [email, setEmail] = useState(
-    user?.email || ""
-  );
-
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [profilePhoto, setProfilePhoto] = useState(
     user?.profilePhoto || ""
   );
 
-  const [profileLoading, setProfileLoading] =
-    useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-
-  /* =========================
-     NOTIFICATIONS
-  ========================= */
+  // ==========================================
+  // NOTIFICATIONS
+  // ==========================================
 
   const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem("notifications");
 
-    const saved =
-      localStorage.getItem("notifications");
-
-    return saved
-      ? JSON.parse(saved)
-      : {
-          taskAssigned: true,
-          deadlineReminder: true,
-          taskCompleted: true,
-          emailNotifications: false,
-        };
-
+      return saved
+        ? JSON.parse(saved)
+        : {
+            taskAssigned: true,
+            deadlineReminder: true,
+            taskCompleted: true,
+            emailNotifications: false,
+          };
+    } catch {
+      return {
+        taskAssigned: true,
+        deadlineReminder: true,
+        taskCompleted: true,
+        emailNotifications: false,
+      };
+    }
   });
 
-
-  /* =========================
-     APPEARANCE
-  ========================= */
+  // ==========================================
+  // APPEARANCE
+  // ==========================================
 
   const [theme, setTheme] = useState(() => {
-
-    return (
-      localStorage.getItem("theme") ||
-      "system"
-    );
-
+    return localStorage.getItem("theme") || "system";
   });
 
-
-  /* =========================
-     TASK PREFERENCES
-  ========================= */
+  // ==========================================
+  // TASK PREFERENCES
+  // ==========================================
 
   const [sortBy, setSortBy] = useState(() => {
-
-    return (
-      localStorage.getItem("sortBy") ||
-      "recent"
-    );
-
+    return localStorage.getItem("sortBy") || "recent";
   });
 
+  const [defaultPriority, setDefaultPriority] = useState(() => {
+    return (
+      localStorage.getItem("defaultPriority") || "Medium"
+    );
+  });
 
-  const [defaultPriority, setDefaultPriority] =
-    useState(() => {
+  // ==========================================
+  // PASSWORD
+  // ADMIN ONLY
+  // ==========================================
 
-      return (
-        localStorage.getItem(
-          "defaultPriority"
-        ) || "Medium"
-      );
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-    });
+  // ==========================================
+  // GENERAL MESSAGE
+  // ==========================================
 
+  const [message, setMessage] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
-  /* =========================
-     PASSWORD
-     ADMIN ONLY
-  ========================= */
-
-  const [currentPassword, setCurrentPassword] =
-    useState("");
-
-  const [newPassword, setNewPassword] =
-    useState("");
-
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
-
-  const [message, setMessage] =
-    useState("");
-
-  const [passwordLoading, setPasswordLoading] =
-    useState(false);
-
-
-  /* =========================
-     KEEP PROFILE IN SYNC
-  ========================= */
+  // ==========================================
+  // KEEP PROFILE IN SYNC
+  // ==========================================
 
   useEffect(() => {
-
-    if (!user) {
-      return;
-    }
+    if (!user) return;
 
     setName(user.name || "");
     setEmail(user.email || "");
     setProfilePhoto(user.profilePhoto || "");
-
   }, [user]);
 
+  // ==========================================
+  // PROFILE PHOTO
+  // ==========================================
 
-  /* =========================
-     PROFILE PHOTO
-  ========================= */
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
 
-  const handlePhotoChange = (e) => {
-
-    const file = e.target.files[0];
-
-    if (!file) {
-      return;
-    }
-
-
-    // Maximum 2 MB
+    if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-
       setMessage(
         "Profile photo must be smaller than 2 MB."
       );
-
       return;
     }
 
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please select a valid image file.");
+      return;
+    }
 
     const reader = new FileReader();
 
     reader.onloadend = () => {
-
-      setProfilePhoto(
-        reader.result
-      );
-
+      setProfilePhoto(reader.result);
+      setMessage("");
     };
 
     reader.readAsDataURL(file);
-
   };
 
+  // ==========================================
+  // SAVE PROFILE
+  // ==========================================
 
-  /* =========================
-     SAVE PROFILE
-  ========================= */
-
-  const handleProfileSave = async (e) => {
-
-    e.preventDefault();
+  const handleProfileSave = async (event) => {
+    event.preventDefault();
 
     setMessage("");
 
-
-    // Check login
-
     if (!user || !user.token) {
-
-      setMessage(
-        "You are not logged in."
-      );
-
+      setMessage("You are not logged in.");
       return;
     }
-
-
-    // Validate name
 
     if (!name.trim()) {
-
-      setMessage(
-        "Name cannot be empty."
-      );
-
+      setMessage("Name cannot be empty.");
       return;
     }
-
-
-    // Validate email
 
     if (!email.trim()) {
-
-      setMessage(
-        "Email cannot be empty."
-      );
-
+      setMessage("Email cannot be empty.");
       return;
     }
 
-
     try {
-
       setProfileLoading(true);
 
-
       const result = await updateUser({
-
         name: name.trim(),
-
         email: email.trim(),
-
         profilePhoto,
-
       });
 
-
-      // Backend returned error
-
       if (!result.success) {
-
         setMessage(
-          result.message ||
-          "Unable to update profile."
+          result.message || "Unable to update profile."
         );
-
         return;
       }
 
+      setName(result.user.name || "");
+      setEmail(result.user.email || "");
+      setProfilePhoto(result.user.profilePhoto || "");
 
-      // Update form with backend response
-
-      setName(
-        result.user.name
-      );
-
-      setEmail(
-        result.user.email
-      );
-
-      setProfilePhoto(
-        result.user.profilePhoto || ""
-      );
-
-
-      setMessage(
-        "Profile updated successfully."
-      );
-
+      setMessage("Profile updated successfully.");
 
       setTimeout(() => {
-
         setMessage("");
-
       }, 3000);
-
-
     } catch (error) {
+      console.error("Profile save error:", error);
 
-      console.error(
-        "Profile save error:",
-        error
-      );
-
-      setMessage(
-        "Unable to update profile."
-      );
-
-
+      setMessage("Unable to update profile.");
     } finally {
-
       setProfileLoading(false);
-
     }
-
   };
 
-
-  /* =========================
-     NOTIFICATION CHANGE
-  ========================= */
+  // ==========================================
+  // NOTIFICATIONS
+  // ==========================================
 
   const handleNotificationChange = (key) => {
-
     const updated = {
-
       ...notifications,
-
-      [key]:
-        !notifications[key],
-
+      [key]: !notifications[key],
     };
-
 
     setNotifications(updated);
 
-
     localStorage.setItem(
-
       "notifications",
-
       JSON.stringify(updated)
-
     );
-
   };
 
-
-  /* =========================
-     THEME
-  ========================= */
+  // ==========================================
+  // THEME
+  // ==========================================
 
   useEffect(() => {
-
-    localStorage.setItem(
-      "theme",
-      theme
-    );
-
+    localStorage.setItem("theme", theme);
 
     if (theme === "dark") {
-
-      document.body.classList.add(
-        "dark-mode"
-      );
-
+      document.body.classList.add("dark-mode");
+      return;
     }
 
-    else if (theme === "light") {
-
-      document.body.classList.remove(
-        "dark-mode"
-      );
-
+    if (theme === "light") {
+      document.body.classList.remove("dark-mode");
+      return;
     }
 
-    else {
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
 
-      const prefersDark =
-        window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
-
-      if (prefersDark) {
-
-        document.body.classList.add(
-          "dark-mode"
-        );
-
-      }
-
-      else {
-
-        document.body.classList.remove(
-          "dark-mode"
-        );
-
-      }
-
+    if (prefersDark) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
     }
-
   }, [theme]);
 
-
-  /* =========================
-     TASK PREFERENCES
-  ========================= */
+  // ==========================================
+  // TASK PREFERENCES
+  // ==========================================
 
   const handleSortChange = (value) => {
-
     setSortBy(value);
-
-    localStorage.setItem(
-      "sortBy",
-      value
-    );
-
+    localStorage.setItem("sortBy", value);
   };
 
-
   const handlePriorityChange = (value) => {
-
     setDefaultPriority(value);
-
     localStorage.setItem(
       "defaultPriority",
       value
     );
-
   };
 
+  // ==========================================
+  // CHANGE PASSWORD
+  // ADMIN ONLY
+  // ==========================================
 
-  /* =========================
-     CHANGE PASSWORD
-     ADMIN ONLY
-  ========================= */
-
-  const handlePasswordChange = async (e) => {
-
-    e.preventDefault();
+  const handlePasswordChange = async (event) => {
+    event.preventDefault();
 
     setMessage("");
 
-
-    /* -------------------------
-       ADMIN CHECK
-    ------------------------- */
-
     if (!user || user.role !== "admin") {
-
       setMessage(
         "Only admin can change the password."
       );
-
       return;
     }
-
-
-    /* -------------------------
-       VALIDATE FIELDS
-    ------------------------- */
 
     if (
       !currentPassword ||
       !newPassword ||
       !confirmPassword
     ) {
-
       setMessage(
         "Please fill all password fields."
       );
-
       return;
     }
 
-
-    /* -------------------------
-       CHECK NEW PASSWORD
-    ------------------------- */
-
-    if (
-      newPassword !==
-      confirmPassword
-    ) {
-
+    if (newPassword !== confirmPassword) {
       setMessage(
         "New passwords do not match."
       );
-
       return;
     }
 
-
-    /* -------------------------
-       PASSWORD LENGTH
-    ------------------------- */
-
-    if (
-      newPassword.length < 6
-    ) {
-
+    if (newPassword.length < 6) {
       setMessage(
         "New password must be at least 6 characters."
       );
-
       return;
     }
-
-
-    /* -------------------------
-       CHECK LOGIN
-    ------------------------- */
 
     if (!user.token) {
-
-      setMessage(
-        "You are not logged in."
-      );
-
+      setMessage("You are not logged in.");
       return;
     }
 
-
     try {
-
       setPasswordLoading(true);
 
-
-      /* -------------------------
-         API REQUEST
-      ------------------------- */
-
       const response = await fetch(
-
         `${API_URL}/api/auth/change-password`,
-
         {
           method: "PATCH",
-
           headers: {
-
-            "Content-Type":
-              "application/json",
-
-            "Authorization":
-              `Bearer ${user.token}`,
-
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
           },
-
           body: JSON.stringify({
-
             currentPassword,
-
             newPassword,
-
           }),
-
         }
-
       );
 
-
-      const data =
-        await response.json();
-
-
-      /* -------------------------
-         API ERROR
-      ------------------------- */
+      const data = await response.json();
 
       if (!response.ok) {
-
         setMessage(
-
           data.message ||
-
-          "Unable to change password."
-
+            "Unable to change password."
         );
-
         return;
       }
 
-
-      /* -------------------------
-         SUCCESS
-      ------------------------- */
-
       setCurrentPassword("");
-
       setNewPassword("");
-
       setConfirmPassword("");
-
 
       setMessage(
         "Password changed successfully."
       );
 
-
       setTimeout(() => {
-
         setMessage("");
-
       }, 3000);
-
-
     } catch (error) {
-
       console.error(
         "Change password error:",
         error
       );
 
-
       setMessage(
         "Unable to connect to the server."
       );
-
-
     } finally {
-
       setPasswordLoading(false);
-
     }
-
   };
 
-
-  /* =========================
-     LOGOUT
-     AVAILABLE FOR BOTH
-  ========================= */
+  // ==========================================
+  // LOGOUT
+  // ==========================================
 
   const handleLogout = () => {
-
     logout();
-
     navigate("/");
-
   };
 
+  // ==========================================
+  // PROFILE INITIAL
+  // ==========================================
+
+  const profileInitial =
+    name?.trim()?.charAt(0)?.toUpperCase() || "U";
 
   return (
-
     <main className="page settings-page">
 
-
-      {/* =========================
-          PAGE HEADING
-      ========================= */}
+      {/* ======================================
+          PAGE HEADER
+      ====================================== */}
 
       <div className="page-heading">
+        <span className="dashboard-label">
+          ACCOUNT & PREFERENCES
+        </span>
 
-        <h1>
-          ⚙️ Settings
-        </h1>
+        <h1>Settings</h1>
 
         <p>
-          Manage your profile, preferences and account.
+          Manage your profile, preferences and
+          account settings.
         </p>
-
       </div>
 
-
-      {/* =========================
+      {/* ======================================
           MESSAGE
-      ========================= */}
+      ====================================== */}
 
       {message && (
-
         <div className="settings-message">
-
           {message}
-
         </div>
-
       )}
 
-
-      {/* =========================
+      {/* ======================================
           PROFILE
-      ========================= */}
+      ====================================== */}
 
       <section className="settings-card">
 
         <div className="settings-card-header">
-
           <div>
-
-            <h2>
-              👤 Profile
-            </h2>
+            <h2>👤 Profile</h2>
 
             <p>
-              Manage your personal information.
+              Manage your personal information and
+              profile photo.
             </p>
-
           </div>
-
         </div>
-
 
         <form
           className="settings-form"
           onSubmit={handleProfileSave}
         >
 
-
           {/* PROFILE PHOTO */}
 
           <div className="settings-profile">
 
             {profilePhoto ? (
-
               <img
                 src={profilePhoto}
                 alt="Profile"
                 className="settings-profile-image"
               />
-
             ) : (
-
               <div className="settings-profile-placeholder">
-                👤
+                {profileInitial}
               </div>
-
             )}
 
+            <div className="settings-profile-info">
 
-            <label className="photo-button">
+              <strong>
+                {name || "Your Name"}
+              </strong>
 
-              Change Photo
+              <span>
+                {user?.role === "admin"
+                  ? "Administrator"
+                  : "Employee"}
+              </span>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-              />
+              <label className="photo-button">
+                Change Photo
 
-            </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                />
+              </label>
+
+              <small>
+                JPG, PNG or WebP • Maximum 2 MB
+              </small>
+
+            </div>
 
           </div>
-
 
           {/* NAME */}
 
           <div className="form-group">
 
-            <label>
-              Name
-            </label>
+            <label>Name</label>
 
             <input
               type="text"
               value={name}
-              onChange={(e) =>
-                setName(
-                  e.target.value
-                )
+              onChange={(event) =>
+                setName(event.target.value)
               }
+              placeholder="Enter your name"
             />
 
           </div>
-
 
           {/* EMAIL */}
 
           <div className="form-group">
 
-            <label>
-              Email
-            </label>
+            <label>Email</label>
 
             <input
               type="email"
               value={email}
-              onChange={(e) =>
-                setEmail(
-                  e.target.value
-                )
+              onChange={(event) =>
+                setEmail(event.target.value)
               }
+              placeholder="Enter your email"
             />
 
           </div>
 
+          {/* ROLE */}
 
-          {/* SAVE PROFILE */}
+          <div className="form-group">
+
+            <label>Account Role</label>
+
+            <input
+              type="text"
+              value={
+                user?.role === "admin"
+                  ? "Administrator"
+                  : "Employee"
+              }
+              readOnly
+            />
+
+          </div>
 
           <button
             type="submit"
             className="primary-button"
             disabled={profileLoading}
           >
-
             {profileLoading
               ? "Saving Profile..."
               : "Save Profile"}
-
           </button>
 
         </form>
 
       </section>
 
-
-      {/* =========================
+      {/* ======================================
           NOTIFICATIONS
-      ========================= */}
+      ====================================== */}
 
       <section className="settings-card">
 
         <div className="settings-card-header">
 
           <div>
-
-            <h2>
-              🔔 Notifications
-            </h2>
+            <h2>🔔 Notifications</h2>
 
             <p>
-              Choose which notifications you want.
+              Choose which notifications you want
+              to receive.
             </p>
-
           </div>
 
         </div>
 
-
         <div className="settings-options">
-
-
-          {/* TASK ASSIGNED */}
 
           <label className="setting-option">
 
             <div>
-
-              <strong>
-                Task Assigned
-              </strong>
+              <strong>Task Assigned</strong>
 
               <span>
                 Notify when a new task is assigned.
               </span>
-
             </div>
 
             <input
               type="checkbox"
-              checked={
-                notifications.taskAssigned
-              }
+              checked={notifications.taskAssigned}
               onChange={() =>
                 handleNotificationChange(
                   "taskAssigned"
@@ -850,21 +578,14 @@ function Settings() {
 
           </label>
 
-
-          {/* DEADLINE REMINDER */}
-
           <label className="setting-option">
 
             <div>
-
-              <strong>
-                Deadline Reminder
-              </strong>
+              <strong>Deadline Reminder</strong>
 
               <span>
                 Remind me about upcoming deadlines.
               </span>
-
             </div>
 
             <input
@@ -881,21 +602,14 @@ function Settings() {
 
           </label>
 
-
-          {/* TASK COMPLETED */}
-
           <label className="setting-option">
 
             <div>
-
-              <strong>
-                Task Completed
-              </strong>
+              <strong>Task Completed</strong>
 
               <span>
                 Notify when a task is completed.
               </span>
-
             </div>
 
             <input
@@ -912,21 +626,14 @@ function Settings() {
 
           </label>
 
-
-          {/* EMAIL NOTIFICATIONS */}
-
           <label className="setting-option">
 
             <div>
-
-              <strong>
-                Email Notifications
-              </strong>
+              <strong>Email Notifications</strong>
 
               <span>
                 Receive notifications through email.
               </span>
-
             </div>
 
             <input
@@ -947,34 +654,25 @@ function Settings() {
 
       </section>
 
-
-      {/* =========================
+      {/* ======================================
           APPEARANCE
-      ========================= */}
+      ====================================== */}
 
       <section className="settings-card">
 
         <div className="settings-card-header">
 
           <div>
-
-            <h2>
-              🎨 Appearance
-            </h2>
+            <h2>🎨 Appearance</h2>
 
             <p>
-              Customize the look of your dashboard.
+              Customize how the application looks.
             </p>
-
           </div>
 
         </div>
 
-
         <div className="theme-options">
-
-
-          {/* LIGHT */}
 
           <button
             type="button"
@@ -983,15 +681,10 @@ function Settings() {
                 ? "theme-button active"
                 : "theme-button"
             }
-            onClick={() =>
-              setTheme("light")
-            }
+            onClick={() => setTheme("light")}
           >
             ☀️ Light
           </button>
-
-
-          {/* DARK */}
 
           <button
             type="button"
@@ -1000,15 +693,10 @@ function Settings() {
                 ? "theme-button active"
                 : "theme-button"
             }
-            onClick={() =>
-              setTheme("dark")
-            }
+            onClick={() => setTheme("dark")}
           >
             🌙 Dark
           </button>
-
-
-          {/* SYSTEM */}
 
           <button
             type="button"
@@ -1017,9 +705,7 @@ function Settings() {
                 ? "theme-button active"
                 : "theme-button"
             }
-            onClick={() =>
-              setTheme("system")
-            }
+            onClick={() => setTheme("system")}
           >
             💻 System
           </button>
@@ -1028,11 +714,9 @@ function Settings() {
 
       </section>
 
-
-      {/* =========================
-          SECURITY
-          ADMIN ONLY
-      ========================= */}
+      {/* ======================================
+          SECURITY - ADMIN ONLY
+      ====================================== */}
 
       {user?.role === "admin" && (
 
@@ -1041,40 +725,31 @@ function Settings() {
           <div className="settings-card-header">
 
             <div>
-
-              <h2>
-                🔐 Security
-              </h2>
+              <h2>🔐 Security</h2>
 
               <p>
-                Manage your account security.
+                Manage your administrator account
+                password.
               </p>
-
             </div>
 
           </div>
-
 
           <form
             className="settings-form"
             onSubmit={handlePasswordChange}
           >
 
-
-            {/* CURRENT PASSWORD */}
-
             <div className="form-group">
 
-              <label>
-                Current Password
-              </label>
+              <label>Current Password</label>
 
               <input
                 type="password"
                 value={currentPassword}
-                onChange={(e) =>
+                onChange={(event) =>
                   setCurrentPassword(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter current password"
@@ -1082,21 +757,16 @@ function Settings() {
 
             </div>
 
-
-            {/* NEW PASSWORD */}
-
             <div className="form-group">
 
-              <label>
-                New Password
-              </label>
+              <label>New Password</label>
 
               <input
                 type="password"
                 value={newPassword}
-                onChange={(e) =>
+                onChange={(event) =>
                   setNewPassword(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter new password"
@@ -1104,21 +774,16 @@ function Settings() {
 
             </div>
 
-
-            {/* CONFIRM PASSWORD */}
-
             <div className="form-group">
 
-              <label>
-                Confirm New Password
-              </label>
+              <label>Confirm New Password</label>
 
               <input
                 type="password"
                 value={confirmPassword}
-                onChange={(e) =>
+                onChange={(event) =>
                   setConfirmPassword(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Confirm new password"
@@ -1126,19 +791,14 @@ function Settings() {
 
             </div>
 
-
-            {/* CHANGE PASSWORD */}
-
             <button
               type="submit"
               className="primary-button"
               disabled={passwordLoading}
             >
-
               {passwordLoading
                 ? "Changing Password..."
                 : "Change Password"}
-
             </button>
 
           </form>
@@ -1147,30 +807,43 @@ function Settings() {
 
       )}
 
-
-      {/* =========================
-          LOGOUT
-          BOTH ADMIN & EMPLOYEE
-      ========================= */}
+      {/* ======================================
+          ACCOUNT
+      ====================================== */}
 
       <section className="settings-card">
 
         <div className="settings-card-header">
 
           <div>
-
-            <h2>
-              🚪 Account
-            </h2>
+            <h2>🚪 Account</h2>
 
             <p>
               Manage your current session.
             </p>
-
           </div>
 
         </div>
 
+        <div className="account-summary">
+
+          <div>
+            <strong>
+              {name || "User"}
+            </strong>
+
+            <span>
+              {email}
+            </span>
+          </div>
+
+          <span className="account-role-badge">
+            {user?.role === "admin"
+              ? "Administrator"
+              : "Employee"}
+          </span>
+
+        </div>
 
         <button
           type="button"
@@ -1182,167 +855,146 @@ function Settings() {
 
       </section>
 
-
-      {/* =========================
+      {/* ======================================
           TASK PREFERENCES
-      ========================= */}
+      ====================================== */}
 
       <section className="settings-card">
 
         <div className="settings-card-header">
 
           <div>
-
-            <h2>
-              📊 Task Preferences
-            </h2>
+            <h2>📊 Task Preferences</h2>
 
             <p>
-              Customize how your tasks are managed.
+              Customize how your tasks are displayed.
             </p>
-
           </div>
 
         </div>
 
+        <div className="settings-preferences-grid">
 
-        {/* SORT TASKS */}
+          <div className="form-group">
 
-        <div className="form-group">
+            <label>Sort Tasks By</label>
 
-          <label>
-            Sort Tasks By
-          </label>
+            <select
+              value={sortBy}
+              onChange={(event) =>
+                handleSortChange(
+                  event.target.value
+                )
+              }
+            >
 
-          <select
-            value={sortBy}
-            onChange={(e) =>
-              handleSortChange(
-                e.target.value
-              )
-            }
-          >
+              <option value="recent">
+                Recently Added
+              </option>
 
-            <option value="recent">
-              Recently Added
-            </option>
+              <option value="deadline">
+                Deadline
+              </option>
 
-            <option value="deadline">
-              Deadline
-            </option>
+              <option value="priority">
+                Priority
+              </option>
 
-            <option value="priority">
-              Priority
-            </option>
+              <option value="status">
+                Status
+              </option>
 
-            <option value="status">
-              Status
-            </option>
+            </select>
 
-          </select>
+          </div>
 
-        </div>
+          <div className="form-group">
 
+            <label>Default Priority</label>
 
-        {/* DEFAULT PRIORITY */}
+            <select
+              value={defaultPriority}
+              onChange={(event) =>
+                handlePriorityChange(
+                  event.target.value
+                )
+              }
+            >
 
-        <div className="form-group">
+              <option value="Low">
+                Low
+              </option>
 
-          <label>
-            Default Priority
-          </label>
+              <option value="Medium">
+                Medium
+              </option>
 
-          <select
-            value={defaultPriority}
-            onChange={(e) =>
-              handlePriorityChange(
-                e.target.value
-              )
-            }
-          >
+              <option value="High">
+                High
+              </option>
 
-            <option value="Low">
-              Low
-            </option>
+            </select>
 
-            <option value="Medium">
-              Medium
-            </option>
-
-            <option value="High">
-              High
-            </option>
-
-          </select>
+          </div>
 
         </div>
 
       </section>
 
-
-      {/* =========================
+      {/* ======================================
           ABOUT
-      ========================= */}
+      ====================================== */}
 
       <section className="settings-card">
 
         <div className="settings-card-header">
 
           <div>
-
-            <h2>
-              ℹ️ About
-            </h2>
+            <h2>ℹ️ About</h2>
 
             <p>
               Information about this application.
             </p>
-
           </div>
 
         </div>
 
-
         <div className="about-content">
 
-          <h3>
-            Internship Task Tracker
-          </h3>
+          <div className="about-title">
 
-          <p>
-            Version: 1.0.0
-          </p>
+            <div className="about-app-icon">
+              ITT
+            </div>
+
+            <div>
+              <h3>
+                Internship Task Tracker
+              </h3>
+
+              <p>
+                Version 1.0.0
+              </p>
+            </div>
+
+          </div>
 
           <p>
             A task management dashboard designed
             for internship work tracking.
           </p>
 
-
           <div className="technology-list">
 
-            <span>
-              React.js
-            </span>
-
-            <span>
-              React Router
-            </span>
-
-            <span>
-              Context API
-            </span>
-
-            <span>
-              Vite
-            </span>
-
-            <span>
-              CSS
-            </span>
+            <span>React.js</span>
+            <span>React Router</span>
+            <span>Context API</span>
+            <span>Vite</span>
+            <span>Express.js</span>
+            <span>MongoDB</span>
+            <span>Cloudinary</span>
 
           </div>
-
 
           <p className="copyright">
             © 2026 Internship Task Tracker

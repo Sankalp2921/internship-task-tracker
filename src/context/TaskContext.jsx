@@ -7,18 +7,29 @@ import React, {
 
 import { useAuth } from "./AuthContext";
 
+
+// ======================================
+// CREATE CONTEXT
+// ======================================
+
 const TaskContext = createContext();
 
-// ==========================================
+
+// ======================================
 // API URL
-// ==========================================
+// ======================================
 
 const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5001"
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5001"
 ).replace(/\/$/, "");
 
 
-export function TaskProvider({ children }) {
+// ======================================
+// PROVIDER
+// ======================================
+
+export const TaskProvider = ({ children }) => {
 
   const { user } = useAuth();
 
@@ -26,114 +37,114 @@ export function TaskProvider({ children }) {
   const [loading, setLoading] = useState(false);
 
 
-  // ==========================================
-  // LOAD EMPLOYEE TASKS
-  // ==========================================
+  // ======================================
+  // FETCH EMPLOYEE TASKS
+  // ======================================
 
-  useEffect(() => {
+  const fetchMyTasks = async () => {
 
-    const loadTasks = async () => {
+    if (!user || !user.token) {
+      setTasks([]);
+      return;
+    }
 
-      if (!user || !user.token) {
-        setTasks([]);
-        setLoading(false);
-        return;
-      }
+    if (user.role !== "employee") {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+
+      const response = await fetch(
+        `${API_URL}/api/tasks/my-tasks`,
+        {
+          method: "GET",
+
+          headers: {
+            Authorization:
+              `Bearer ${user.token}`,
+          },
+        }
+      );
 
 
-      // Admin does not use /my-tasks
-      if (user.role === "admin") {
-        setTasks([]);
-        setLoading(false);
-        return;
-      }
+      const data =
+        await response.json();
 
 
-      try {
+      if (!response.ok) {
 
-        setLoading(true);
-
-        const response = await fetch(
-          `${API_URL}/api/tasks/my-tasks`,
-          {
-            method: "GET",
-
-            headers: {
-              "Authorization": `Bearer ${user.token}`,
-            },
-          }
+        console.error(
+          "Fetch tasks error:",
+          data.message
         );
 
+        setTasks([]);
 
-        const data = await response.json();
-
-
-        if (!response.ok) {
-
-          console.error(
-            "Fetch tasks failed:",
-            data.message
-          );
-
-          setTasks([]);
-          return;
-        }
+        return;
+      }
 
 
-        const formattedTasks = data.tasks.map(
+      // Convert backend _id
+      // into frontend id
+
+      const formattedTasks =
+        (data.tasks || []).map(
           (task) => ({
-            id: task._id,
-            title: task.title,
-            description: task.description,
-            status: task.status,
-            priority: task.priority,
-            deadline: task.deadline,
-            assignedTo: task.assignedTo,
-            assignedBy: task.assignedBy,
-            createdAt: task.createdAt,
-            updatedAt: task.updatedAt,
+            ...task,
 
-            // Progress based on task status
-            progress:
-              task.status === "completed"
-                ? 100
-                : task.status === "in-progress"
-                  ? 50
-                  : 0,
+            id: task._id,
+
+            submissions:
+              task.submissions || [],
           })
         );
 
 
-        setTasks(formattedTasks);
+      setTasks(
+        formattedTasks
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Fetch tasks error:",
+        error
+      );
+
+      setTasks([]);
+
+    } finally {
+
+      setLoading(false);
+    }
+  };
 
 
-      } catch (error) {
+  // ======================================
+  // FETCH TASKS WHEN USER CHANGES
+  // ======================================
 
-        console.error(
-          "Load tasks error:",
-          error
-        );
+  useEffect(() => {
 
-        setTasks([]);
-
-
-      } finally {
-
-        setLoading(false);
-
-      }
-
-    };
-
-
-    loadTasks();
+    if (
+      user &&
+      user.token &&
+      user.role === "employee"
+    ) {
+      fetchMyTasks();
+    } else {
+      setTasks([]);
+    }
 
   }, [user]);
 
 
-  // ==========================================
-  // ADD TASK - ADMIN
-  // ==========================================
+  // ======================================
+  // ADD TASK
+  // ADMIN
+  // ======================================
 
   const addTask = async (taskData) => {
 
@@ -141,72 +152,60 @@ export function TaskProvider({ children }) {
 
       return {
         success: false,
-        message: "You are not logged in.",
+        message:
+          "You are not logged in.",
       };
-
     }
 
 
     try {
 
-      const response = await fetch(
-        `${API_URL}/api/tasks`,
-        {
-          method: "POST",
+      const response =
+        await fetch(
+          `${API_URL}/api/tasks`,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${user.token}`,
-          },
+            headers: {
+              "Content-Type":
+                "application/json",
 
-          body: JSON.stringify(taskData),
-        }
-      );
+              Authorization:
+                `Bearer ${user.token}`,
+            },
+
+            body: JSON.stringify(
+              taskData
+            ),
+          }
+        );
 
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
 
       if (!response.ok) {
 
         return {
           success: false,
+
           message:
             data.message ||
             "Unable to create task.",
         };
-
       }
-
-
-      // Add task to local React state
-
-      const newTask = {
-        id: data.task._id,
-        title: data.task.title,
-        description: data.task.description,
-        status: data.task.status,
-        priority: data.task.priority,
-        deadline: data.task.deadline,
-        assignedTo: data.task.assignedTo,
-        assignedBy: data.task.assignedBy,
-        createdAt: data.task.createdAt,
-        updatedAt: data.task.updatedAt,
-      };
-
-
-      setTasks((previousTasks) => [
-        ...previousTasks,
-        newTask,
-      ]);
 
 
       return {
         success: true,
-        message: data.message,
-        task: newTask,
-      };
 
+        message:
+          data.message,
+
+        task:
+          data.task,
+      };
 
     } catch (error) {
 
@@ -217,18 +216,18 @@ export function TaskProvider({ children }) {
 
       return {
         success: false,
+
         message:
           "Unable to connect to the server.",
       };
-
     }
-
   };
 
 
-  // ==========================================
+  // ======================================
   // UPDATE TASK STATUS
-  // ==========================================
+  // EMPLOYEE
+  // ======================================
 
   const updateTaskStatus = async (
     taskId,
@@ -239,111 +238,382 @@ export function TaskProvider({ children }) {
 
       return {
         success: false,
-        message: "You are not logged in.",
-      };
 
+        message:
+          "You are not logged in.",
+      };
     }
 
 
     try {
 
-      const response = await fetch(
-        `${API_URL}/api/tasks/${taskId}/status`,
-        {
-          method: "PATCH",
+      const response =
+        await fetch(
+          `${API_URL}/api/tasks/${taskId}/status`,
+          {
+            method: "PATCH",
 
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${user.token}`,
-          },
+            headers: {
+              "Content-Type":
+                "application/json",
 
-          body: JSON.stringify({
-            status,
-          }),
-        }
-      );
+              Authorization:
+                `Bearer ${user.token}`,
+            },
+
+            body: JSON.stringify({
+              status,
+            }),
+          }
+        );
 
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
 
       if (!response.ok) {
 
         return {
           success: false,
+
           message:
             data.message ||
-            "Unable to update task.",
+            "Unable to update task status.",
         };
-
       }
 
 
-      setTasks((previousTasks) =>
-        previousTasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                status: data.task.status,
-              }
-            : task
-        )
+      // Update task locally
+
+      setTasks(
+        (previousTasks) =>
+          previousTasks.map(
+            (task) =>
+              task.id === taskId
+                ? {
+                    ...task,
+
+                    status:
+                      data.task.status,
+                  }
+                : task
+          )
       );
 
 
       return {
         success: true,
-        message: data.message,
-        task: data.task,
-      };
 
+        message:
+          data.message,
+
+        task:
+          data.task,
+      };
 
     } catch (error) {
 
       console.error(
-        "Update task error:",
+        "Update task status error:",
         error
       );
 
       return {
         success: false,
+
         message:
           "Unable to connect to the server.",
       };
-
     }
-
   };
 
 
-  // ==========================================
-  // PROVIDER
-  // ==========================================
+  // ======================================
+  // UPLOAD TASK FILES
+  // EMPLOYEE
+  // ======================================
+
+  const uploadTaskFiles = async (
+    taskId,
+    files
+  ) => {
+
+    if (!user || !user.token) {
+
+      return {
+        success: false,
+
+        message:
+          "You are not logged in.",
+      };
+    }
+
+
+    if (!files || files.length === 0) {
+
+      return {
+        success: false,
+
+        message:
+          "Please select at least one file.",
+      };
+    }
+
+
+    try {
+
+      const formData =
+        new FormData();
+
+
+      Array.from(files).forEach(
+        (file) => {
+
+          formData.append(
+            "files",
+            file
+          );
+
+        }
+      );
+
+
+      const response =
+        await fetch(
+          `${API_URL}/api/tasks/${taskId}/submissions`,
+          {
+            method: "POST",
+
+            headers: {
+              Authorization:
+                `Bearer ${user.token}`,
+            },
+
+            body: formData,
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        return {
+          success: false,
+
+          message:
+            data.message ||
+            "Unable to upload files.",
+        };
+      }
+
+
+      // Update task locally
+
+      setTasks(
+        (previousTasks) =>
+          previousTasks.map(
+            (task) =>
+              task.id === taskId
+                ? {
+                    ...task,
+
+                    status:
+                      data.task.status,
+
+                    submissions:
+                      data.task.submissions ||
+                      [],
+                  }
+                : task
+          )
+      );
+
+
+      return {
+
+        success: true,
+
+        message:
+          data.message,
+
+        submissions:
+          data.submissions,
+
+        task:
+          data.task,
+      };
+
+    } catch (error) {
+
+      console.error(
+        "Upload task files error:",
+        error
+      );
+
+      return {
+        success: false,
+
+        message:
+          "Unable to connect to the server.",
+      };
+    }
+  };
+
+
+  // ======================================
+  // DELETE TASK FILE
+  // EMPLOYEE
+  // ======================================
+
+  const deleteTaskFile = async (
+    taskId,
+    submissionId
+  ) => {
+
+    if (!user || !user.token) {
+
+      return {
+        success: false,
+
+        message:
+          "You are not logged in.",
+      };
+    }
+
+
+    try {
+
+      const response =
+        await fetch(
+          `${API_URL}/api/tasks/${taskId}/submissions/${submissionId}`,
+          {
+            method: "DELETE",
+
+            headers: {
+              Authorization:
+                `Bearer ${user.token}`,
+            },
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        return {
+          success: false,
+
+          message:
+            data.message ||
+            "Unable to delete file.",
+        };
+      }
+
+
+      // Update task locally
+
+      setTasks(
+        (previousTasks) =>
+          previousTasks.map(
+            (task) =>
+              task.id === taskId
+                ? {
+                    ...task,
+
+                    status:
+                      data.task.status,
+
+                    submissions:
+                      data.task.submissions ||
+                      [],
+                  }
+                : task
+          )
+      );
+
+
+      return {
+
+        success: true,
+
+        message:
+          data.message,
+
+        task:
+          data.task,
+      };
+
+    } catch (error) {
+
+      console.error(
+        "Delete task file error:",
+        error
+      );
+
+      return {
+        success: false,
+
+        message:
+          "Unable to connect to the server.",
+      };
+    }
+  };
+
+
+  // ======================================
+  // CONTEXT VALUE
+  // ======================================
+
+  const value = {
+
+    tasks,
+
+    loading,
+
+    addTask,
+
+    updateTaskStatus,
+
+    uploadTaskFiles,
+
+    deleteTaskFile,
+  };
+
 
   return (
     <TaskContext.Provider
-      value={{
-        tasks,
-        loading,
-        addTask,
-        updateTaskStatus,
-      }}
+      value={value}
     >
-
       {children}
-
     </TaskContext.Provider>
   );
+};
 
-}
+
+// ======================================
+// CUSTOM HOOK
+// ======================================
+
+export const useTasks = () => {
+
+  const context =
+    useContext(TaskContext);
 
 
-// ==========================================
-// USE TASKS
-// ==========================================
+  if (!context) {
 
-export function useTasks() {
+    throw new Error(
+      "useTasks must be used within a TaskProvider"
+    );
+  }
 
-  return useContext(TaskContext);
 
-}
+  return context;
+};

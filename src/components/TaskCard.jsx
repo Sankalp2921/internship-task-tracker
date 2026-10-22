@@ -3,14 +3,26 @@ import { Link } from "react-router-dom";
 
 function TaskCard({ task }) {
 
-  // Convert backend status into readable text
+  // =========================
+  // STATUS
+  // =========================
+
   const statusText = {
     pending: "Pending",
     "in-progress": "In Progress",
     completed: "Completed",
   };
 
-  // Calculate progress from status
+  const statusIcon = {
+    pending: "⏳",
+    "in-progress": "🚀",
+    completed: "✓",
+  };
+
+  // =========================
+  // PROGRESS
+  // =========================
+
   const progress =
     task.status === "completed"
       ? 100
@@ -18,56 +30,73 @@ function TaskCard({ task }) {
         ? 50
         : 0;
 
-  // Format deadline
+  // =========================
+  // DEADLINE
+  // =========================
+
   const formattedDeadline = task.deadline
     ? new Date(task.deadline).toLocaleDateString()
     : "No deadline";
 
-  // Calculate deadline status
-const getDeadlineStatus = () => {
+  const getDeadlineStatus = () => {
 
-  if (!task.deadline) {
-    return "no-deadline";
-  }
+    if (!task.deadline) {
+      return "no-deadline";
+    }
 
-  const today = new Date();
-  const deadline = new Date(task.deadline);
+    const today = new Date();
+    const deadline = new Date(task.deadline);
 
-  // Remove time part
-  today.setHours(0, 0, 0, 0);
-  deadline.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    deadline.setHours(0, 0, 0, 0);
 
-  const difference =
-    deadline.getTime() - today.getTime();
+    const difference =
+      deadline.getTime() - today.getTime();
 
-  const daysLeft =
-    Math.ceil(
+    const daysLeft = Math.ceil(
       difference / (1000 * 60 * 60 * 24)
     );
 
-  if (daysLeft < 0) {
-    return "overdue";
-  }
+    if (daysLeft < 0) {
+      return "overdue";
+    }
 
-  if (daysLeft <= 2) {
-    return "due-soon";
-  }
+    if (daysLeft <= 2) {
+      return "due-soon";
+    }
 
-  return "on-track";
-};
+    return "on-track";
+  };
 
-const deadlineStatus = getDeadlineStatus();
+  const deadlineStatus = getDeadlineStatus();
+
+  // =========================
+  // DEADLINE TEXT
+  // =========================
+
+  const deadlineText = {
+    overdue: "Overdue",
+    "due-soon": "Due Soon",
+    "on-track": "On Track",
+    "no-deadline": "No Deadline",
+  };
 
   return (
-    <div className="task-card">
+    <article className="task-card advanced-task-card">
 
       {/* =========================
-          TOP SECTION
+          TOP
       ========================= */}
 
-      <div className="task-card-top">
+      <div className="advanced-task-top">
 
-        <span className={`status ${task.status}`}>
+        <span
+          className={`status ${task.status}`}
+        >
+          <span className="task-status-icon">
+            {statusIcon[task.status] || "•"}
+          </span>
+
           {statusText[task.status] || task.status}
         </span>
 
@@ -86,47 +115,66 @@ const deadlineStatus = getDeadlineStatus();
           TITLE
       ========================= */}
 
-      <h3>
-        {task.title}
-      </h3>
+      <div className="advanced-task-title">
+
+        <h3>
+          {task.title}
+        </h3>
+
+      </div>
 
 
       {/* =========================
           DESCRIPTION
       ========================= */}
 
-      <p>
-        {task.description}
+      <p className="advanced-task-description">
+        {task.description || "No description provided."}
       </p>
 
 
       {/* =========================
-          META INFORMATION
+          TECHNOLOGY
       ========================= */}
 
-      <div className="task-meta">
+      {task.technology && (
+        <div className="task-technology">
 
-        {task.technology && (
-          <span>
-            💻 {task.technology}
+          <span className="technology-icon">
+            💻
           </span>
-        )}
 
-        <span className={`deadline ${deadlineStatus}`}>
-          📅 {formattedDeadline}
+          <span>
+            {task.technology}
+          </span>
 
-          {deadlineStatus === "overdue" && (
-            <strong> 🔴 Overdue</strong>
-          )}
+        </div>
+      )}
 
-          {deadlineStatus === "due-soon" && (
-            <strong> 🟠 Due Soon</strong>
-          )}
 
-          {deadlineStatus === "on-track" && (
-            <strong> 🟢 On Track</strong>
-          )}
-        </span>
+      {/* =========================
+          DEADLINE
+      ========================= */}
+
+      <div
+        className={`advanced-task-deadline ${deadlineStatus}`}
+      >
+
+        <div className="deadline-left">
+
+          <span className="deadline-icon">
+            📅
+          </span>
+
+          <span>
+            {formattedDeadline}
+          </span>
+
+        </div>
+
+        <strong>
+          {deadlineText[deadlineStatus]}
+        </strong>
 
       </div>
 
@@ -135,10 +183,10 @@ const deadlineStatus = getDeadlineStatus();
           PROGRESS
       ========================= */}
 
-      <div className="progress-header">
+      <div className="advanced-progress-header">
 
         <span>
-          Progress
+          Task Progress
         </span>
 
         <strong>
@@ -147,8 +195,7 @@ const deadlineStatus = getDeadlineStatus();
 
       </div>
 
-
-      <div className="progress-bar">
+      <div className="advanced-progress-bar">
 
         <div
           style={{
@@ -160,17 +207,30 @@ const deadlineStatus = getDeadlineStatus();
 
 
       {/* =========================
-          VIEW DETAILS
+          FOOTER
       ========================= */}
 
-      <Link
-        className="view-task"
-        to={`/tasks/${task.id}`}
-      >
-        View Details →
-      </Link>
+      <div className="advanced-task-footer">
 
-    </div>
+        <span className="task-progress-text">
+          {progress === 100
+            ? "Task completed"
+            : progress === 50
+              ? "Work in progress"
+              : "Waiting to start"}
+        </span>
+
+        <Link
+          className="advanced-view-task"
+          to={`/tasks/${task.id}`}
+        >
+          View Details
+          <span>→</span>
+        </Link>
+
+      </div>
+
+    </article>
   );
 }
 
